@@ -35,24 +35,32 @@ const Scene3D = (() => {
     scene.background = makeSky();
     scene.fog = new THREE.Fog(0x141a2c, 14, 30);
 
-    camera = new THREE.PerspectiveCamera(44, w / h, 0.1, 100);
-    camera.position.set(0, 4.0, 8.0);
-    camera.lookAt(0, 1.0, -2);
+    // 横長/正方形/縦長 どちらでも被写体が画面内に納まるよう FOV と注視点を調整
+    const aspect = w / h;
+    const fov = aspect < 1.2 ? 52 : 44;          // 縦長気味なら広角に
+    camera = new THREE.PerspectiveCamera(fov, aspect, 0.1, 100);
+    // 味方(z=3)〜敵(z=-3.2)が両方入るよう、高め＆後ろ＆中央を注視
+    camera.position.set(0, 5.4, 10.0);
+    camera.lookAt(0, 1.4, 0.2);
 
-    // 環境光（天/地）
-    scene.add(new THREE.HemisphereLight(0xcfe0ff, 0x33281a, 1.2));
-    // メイン
-    const key = new THREE.DirectionalLight(0xfff4e0, 1.7);
+    // 鳥山明風のコントラスト高めライティング：環境光抑えめ＋強い順光＋強い逆光
+    scene.add(new THREE.HemisphereLight(0xcfe0ff, 0x33281a, 0.65));
+    // キー（順光・暖色）
+    const key = new THREE.DirectionalLight(0xfff0d0, 2.0);
     key.position.set(4, 9, 6);
     scene.add(key);
     // フィル
-    const fill = new THREE.DirectionalLight(0xffffff, 0.55);
+    const fill = new THREE.DirectionalLight(0xffffff, 0.35);
     fill.position.set(0, 4, 9);
     scene.add(fill);
-    // 逆光（リム）
-    const rim = new THREE.DirectionalLight(0x8ba6ff, 0.85);
+    // 逆光（リム）— 縁取りを強調
+    const rim = new THREE.DirectionalLight(0xaecbff, 1.2);
     rim.position.set(-5, 4, -6);
     scene.add(rim);
+    // バックスポット（さらに縁を立たせる）
+    const back = new THREE.DirectionalLight(0xffe7c2, 0.7);
+    back.position.set(6, 6, -8);
+    scene.add(back);
 
     // 地面
     const ground = new THREE.Mesh(
@@ -97,46 +105,102 @@ const Scene3D = (() => {
 
   /* ---- マテリアル & パーツ -------------------------------------------- */
   function mat(hex, opts = {}) {
-    return new THREE.MeshStandardMaterial({
-      color: hex,
-      roughness: opts.rough ?? 0.6,
-      metalness: opts.metal ?? 0.05,
+    // 鳥山明風: 色の彩度をブースト（暗すぎ・薄すぎを避ける）
+    const c = new THREE.Color(hex);
+    if (!opts.raw) {
+      // 彩度を1.2倍、明度を0.92倍にしてビビッドに
+      const hsl = { h: 0, s: 0, l: 0 };
+      c.getHSL(hsl);
+      c.setHSL(hsl.h, Math.min(1, hsl.s * 1.25), Math.min(0.95, hsl.l * 0.96));
+    }
+    const m = new THREE.MeshStandardMaterial({
+      color: c,
+      roughness: opts.rough ?? 0.65,
+      metalness: opts.metal ?? 0.04,
       flatShading: opts.flat ?? true,
       transparent: true,
       opacity: opts.opacity ?? 1,
       emissive: opts.emissive != null ? new THREE.Color(opts.emissive) : new THREE.Color(0x000000),
       emissiveIntensity: opts.emissiveIntensity ?? 1,
     });
+    if (opts.outline !== false) m.userData.outlineable = true;  // ハイライト・小物以外
+    return m;
   }
   const shade = (hex, f) => new THREE.Color(hex).multiplyScalar(f).getHex();
   const mix = (a, b, t) => new THREE.Color(a).lerp(new THREE.Color(b), t).getHex();
 
-  /* かわいい顔: 大きめの目 + ハイライト + 口 + 任意のほっぺ */
+  /* 反転裏面シェルでセル風アウトラインを追加（鳥山明風の太い縁取り）。
+   * 大きめのジオメトリだけを対象（小物・装飾はスキップ）。
+   */
+  function addOutlines(group, options = {}) {
+    const minRadius = options.minRadius ?? 0.16;
+    const scale = options.scale ?? 1.06;
+    const color = options.color ?? 0x101018;
+    const toAdd = [];
+    group.traverse(obj => {
+      if (!obj.isMesh) return;
+      if (!obj.material || !obj.material.userData || !obj.material.userData.outlineable) return;
+      // ジオメトリのサイズで取捨選択（目のハイライトのような極小は無視）
+      if (!obj.geometry.boundingSphere) obj.geometry.computeBoundingSphere();
+      const r = obj.geometry.boundingSphere.radius;
+      if (r < minRadius) return;
+      // 装飾用（透過の薄いもの・発光強いもの）はアウトラインしない
+      if (obj.material.opacity < 0.85) return;
+      toAdd.push({ obj, r });
+    });
+    toAdd.forEach(({ obj }) => {
+      const outlineMat = new THREE.MeshBasicMaterial({
+        color, side: THREE.BackSide, transparent: false,
+      });
+      const shell = new THREE.Mesh(obj.geometry, outlineMat);
+      shell.position.copy(obj.position);
+      shell.rotation.copy(obj.rotation);
+      shell.scale.copy(obj.scale).multiplyScalar(scale);
+      // 親に追加（兄弟として）
+      obj.parent.add(shell);
+      shell.renderOrder = -1;   // 中身より先に描画
+    });
+  }
+
+  /* かわいい顔: 大きめの目 + ハイライト + 口 + 眉 + 任意のほっぺ（鳥山明風） */
   function face(group, y, z, spread, size, mats, opts = {}) {
     [-spread, spread].forEach(sx => {
       // 白目
       const w = new THREE.Mesh(new THREE.SphereGeometry(size, 16, 16),
         mat(0xffffff, { flat: false, rough: 0.2 }));
       w.position.set(sx, y, z); group.add(w); mats.push(w.material);
-      // 瞳
-      const p = new THREE.Mesh(new THREE.SphereGeometry(size * 0.6, 12, 12),
+      // 瞳（縦長で漫画的に）
+      const p = new THREE.Mesh(new THREE.SphereGeometry(size * 0.62, 12, 12),
         mat(0x1a1a26, { flat: false, rough: 0.3 }));
-      p.position.set(sx, y, z + size * 0.7); group.add(p); mats.push(p.material);
-      // きらめき(emissive)
-      const hl = new THREE.Mesh(new THREE.SphereGeometry(size * 0.24, 10, 10),
-        mat(0xffffff, { flat: false, rough: 0.1, emissive: 0xffffff, emissiveIntensity: 0.6 }));
-      hl.position.set(sx + size * 0.18, y + size * 0.25, z + size * 0.95);
+      p.position.set(sx, y - size * 0.05, z + size * 0.7);
+      p.scale.set(1, 1.2, 0.9);
+      group.add(p); mats.push(p.material);
+      // きらめき(emissive・大きめ)
+      const hl = new THREE.Mesh(new THREE.SphereGeometry(size * 0.28, 10, 10),
+        mat(0xffffff, { flat: false, rough: 0.1, emissive: 0xffffff, emissiveIntensity: 0.7, outline: false }));
+      hl.position.set(sx + size * 0.18, y + size * 0.28, z + size * 0.95);
       group.add(hl); mats.push(hl.material);
     });
+    // 眉（鳥山明風のシャープな線）
+    if (opts.brow !== false) {
+      [-spread, spread].forEach(sx => {
+        const brow = new THREE.Mesh(
+          new THREE.BoxGeometry(size * 0.9, size * 0.18, size * 0.2),
+          mat(opts.browColor ?? 0x1a1a22, { flat: false, rough: 0.5, outline: false }));
+        brow.position.set(sx, y + size * 1.05, z + size * 0.6);
+        brow.rotation.z = sx > 0 ? -0.18 : 0.18;     // への字（怒り眉）少しだけ
+        group.add(brow); mats.push(brow.material);
+      });
+    }
     if (opts.mouth !== false) {
       const mm = new THREE.Mesh(new THREE.BoxGeometry(size * 0.7, size * 0.14, size * 0.18),
-        mat(0x261a26, { flat: false, rough: 0.6 }));
+        mat(0x261a26, { flat: false, rough: 0.6, outline: false }));
       mm.position.set(0, y - size * 1.05, z + 0.02); group.add(mm); mats.push(mm.material);
     }
     if (opts.blush) {
       [-spread * 1.55, spread * 1.55].forEach(sx => {
         const cb = new THREE.Mesh(new THREE.SphereGeometry(size * 0.55, 10, 10),
-          mat(0xff8aa8, { flat: false, rough: 0.55, opacity: 0.7 }));
+          mat(0xff8aa8, { flat: false, rough: 0.55, opacity: 0.7, outline: false }));
         cb.position.set(sx, y - size * 0.55, z * 0.9 + 0.01);
         cb.scale.set(1, 0.7, 0.6);
         group.add(cb); mats.push(cb.material);
@@ -654,6 +718,9 @@ const Scene3D = (() => {
     addElementFlair(g, species.el, baseTop, m, decos);
     addRankFlair(g, species.rank, col, baseTop, m, decos);
 
+    // 鳥山明風アウトライン（最後に追加：装飾より小さいものはスキップ）
+    addOutlines(g, { minRadius: 0.16, scale: 1.06 });
+
     const s = 0.74 + Math.min(species.rank, 7) * 0.1;
     g.scale.setScalar(s);
     g.userData.glow = species.rank >= 4 ? new THREE.Color(DB.ELEMENTS[species.el].color) : null;
@@ -682,8 +749,8 @@ const Scene3D = (() => {
     });
     entries = [];
     overlay.innerHTML = '';
-    addSide(enemies, 'enemy', -3.2, Math.PI);   // 奥・手前を向く
-    addSide(allies, 'ally', 3.0, 0);            // 手前・奥を向く
+    addSide(enemies, 'enemy', -3.0, Math.PI);   // 奥・手前を向く
+    addSide(allies, 'ally', 2.4, 0);            // 手前・奥を向く（画面内に収まるよう少し奥へ）
     renderFrame();
   }
 

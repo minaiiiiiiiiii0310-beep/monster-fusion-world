@@ -115,6 +115,7 @@ const State = (() => {
     if (data.rank == null) data.rank = 0;
     if (data.bossBeaten == null) data.bossBeaten = false;
     if (!data.player) data.player = { x: 0, z: 7, angle: 0 };
+    if (!data.overworld) data.overworld = { x: 0, z: 70, angle: Math.PI };
     if (!data.story) data.story = { chapter: 0, seenIntro: false, seenEnding: false };
 
     // 存在しない種族の個体を除去（データ刷新・旧セーブ対策）
@@ -375,6 +376,11 @@ const State = (() => {
     // 位置はこまめに保存（過剰書き込みを避けて呼び出し側で間引く）
   }
 
+  /* オーバーワールド（広い冒険マップ）での自分の位置 */
+  function setOverworldPos(x, z, angle) {
+    data.overworld = { x, z, angle };
+  }
+
   /* ---- ストーリー ------------------------------------------------------ */
   function setStory(patch) { Object.assign(data.story, patch); save(); }
 
@@ -392,6 +398,6 @@ const State = (() => {
     addGold, spendGold, buy, buySeed, useSeed, itemCount, consumeItem, addItem,
     markCleared, isCleared, seenCount,
     addRank, rankName,
-    setPlayerPos, setStory,
+    setPlayerPos, setOverworldPos, setStory,
   };
 })();

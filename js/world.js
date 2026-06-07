@@ -25,7 +25,7 @@ const World = (() => {
 
   /* ---- 施設レイアウト --------------------------------------------------- */
   const LAYOUT = [
-    { id: 'gate',   name: 'ゲート',     emoji: '🌀', x: 0,   z: -13, color: 0x6b54c8, big: true },
+    { id: 'gate',   name: 'ぼうけんマップ', emoji: '🗺️', x: 0,   z: -13, color: 0x6b54c8, big: true },
     { id: 'inn',    name: 'やどや',     emoji: '🛏️', x: -11, z: -8,  color: 0xc77f3a },
     { id: 'fusion', name: 'ゆうごうじょ', emoji: '🥚', x: 11,  z: -8,  color: 0x4aa3b5 },
     { id: 'ranch',  name: 'モンスターぼくじょう', emoji: '🐾', x: -13, z: 2, color: 0x5fa84a },
@@ -44,6 +44,10 @@ const World = (() => {
     onChest = opts.onChest || null;
     encounterPending = false;
     if (mode === 'field') { POS.x = 0; POS.z = 16; angle = Math.PI; }
+    else if (mode === 'overworld') {
+      const p = State.data.overworld || { x: 0, z: 70, angle: Math.PI };
+      POS.x = p.x; POS.z = p.z; angle = p.angle == null ? Math.PI : p.angle;
+    }
     else { const p = State.data.player || { x: 0, z: 12, angle: Math.PI }; POS.x = p.x; POS.z = p.z; angle = p.angle == null ? Math.PI : p.angle; }
 
     try {
@@ -68,6 +72,7 @@ const World = (() => {
       facilities = []; roamers = []; chests = [];
       labelLayer.innerHTML = '';
       if (mode === 'field') buildField();
+      else if (mode === 'overworld') buildOverworld();
       else { LAYOUT.forEach(f => buildFacility(f)); buildMaster(); }
       buildPlayer();
     } catch (e) {
@@ -94,11 +99,63 @@ const World = (() => {
 
   function buildGround() {
     const fieldMode = mode === 'field';
-    const groundCol = fieldMode ? 0x5a8f48 : 0x6fae54;
-    const grass = new THREE.Mesh(new THREE.PlaneGeometry(70, 70),
+    const worldMode = mode === 'overworld';
+    const size = worldMode ? 180 : 70;
+    const groundCol = worldMode ? 0x6aaa54 : (fieldMode ? 0x5a8f48 : 0x6fae54);
+    const grass = new THREE.Mesh(new THREE.PlaneGeometry(size, size),
       new THREE.MeshStandardMaterial({ color: groundCol, roughness: 1 }));
     grass.rotation.x = -Math.PI / 2; scene.add(grass);
-    if (!fieldMode) {
+    if (worldMode) {
+      // バイオームの色分け（ベタ塗りの大きなパッチ）
+      const biomes = [
+        { col: 0xd2b878, x: -40,  z: -10, w: 60, h: 50 },   // 砂漠（西）
+        { col: 0xe6eaf1, x:  45,  z: -55, w: 55, h: 45 },   // 雪原（北東）
+        { col: 0x8b4a3a, x:  35,  z:  30, w: 50, h: 50 },   // 溶岩台地（南東）
+        { col: 0x3e6e4a, x: -45,  z:  45, w: 60, h: 45 },   // 深い森（南西）
+        { col: 0x6a7fe8, x:   0,  z: -80, w: 30, h: 30 },   // 湖（北端）
+      ];
+      biomes.forEach(b => {
+        const p = new THREE.Mesh(new THREE.PlaneGeometry(b.w, b.h),
+          new THREE.MeshStandardMaterial({ color: b.col, roughness: 1,
+            transparent: true, opacity: 0.92 }));
+        p.rotation.x = -Math.PI / 2;
+        p.position.set(b.x, 0.012, b.z);
+        scene.add(p);
+      });
+      // 道（中央を縦に走る土の道）
+      for (let i = -8; i <= 7; i++) {
+        const seg = new THREE.Mesh(new THREE.PlaneGeometry(2.4, 10),
+          new THREE.MeshStandardMaterial({ color: 0xa67844, roughness: 1, opacity: 0.85, transparent: true }));
+        seg.rotation.x = -Math.PI / 2;
+        seg.position.set(Math.sin(i * 0.55) * 4, 0.015, i * 11);
+        scene.add(seg);
+      }
+      // 山脈（外周）
+      for (let i = 0; i < 28; i++) {
+        const a = i / 28 * Math.PI * 2;
+        const x = Math.cos(a) * 78, z = Math.sin(a) * 78;
+        const mt = new THREE.Mesh(
+          new THREE.ConeGeometry(4 + Math.random() * 2.5, 8 + Math.random() * 4, 5),
+          mat(0x6a6058, { rough: 0.95 }));
+        mt.position.set(x, 4, z);
+        mt.rotation.y = Math.random() * 6.28;
+        scene.add(mt);
+        // 雪冠
+        const cap = new THREE.Mesh(
+          new THREE.ConeGeometry(1.6, 2, 5),
+          mat(0xeef2f6, { rough: 0.9 }));
+        cap.position.set(x, 8.5, z);
+        scene.add(cap);
+      }
+      // 草原に木を散らす
+      for (let i = 0; i < 60; i++) {
+        const x = (Math.random() - 0.5) * 150;
+        const z = (Math.random() - 0.5) * 150;
+        // 道沿いは避ける
+        if (Math.abs(x) < 5) continue;
+        tree(x, z);
+      }
+    } else if (!fieldMode) {
       // 町：中央の広場（石だたみ）
       const plaza = new THREE.Mesh(new THREE.CircleGeometry(9, 40),
         new THREE.MeshStandardMaterial({ color: 0xb9b2a0, roughness: 1 }));
@@ -159,6 +216,139 @@ const World = (() => {
     masterLabel.innerHTML = `<span class="wl-emoji">🧙</span><span class="wl-name">マスター</span>`;
     labelLayer.appendChild(masterLabel);
     facilities.push({ id: 'master', name: 'マスター', x: 0, z: 3, group: g, label: masterLabel, top: 2.6, doorZ: 3.6, r: 1.2, isMaster: true });
+  }
+
+  /* ---- オーバーワールド（広い冒険マップ）-------------------------------
+   * 道に沿って各エリア（AREAS）の入口がスポットとして置かれる。途中に旅人の
+   * 村があり、地形は道路・草原・砂漠・雪原・溶岩・森・湖の混合バイオーム。
+   */
+  function buildOverworld() {
+    // 1) ホームへ戻るゲート（南端のスポーン地点付近）
+    const homeGate = new THREE.Group();
+    const arch = new THREE.Mesh(new THREE.TorusGeometry(1.8, 0.32, 8, 18), mat(0xb38a45, { metal: 0.3 }));
+    arch.position.y = 2.0; arch.rotation.x = Math.PI / 2; homeGate.add(arch);
+    const post1 = new THREE.Mesh(new THREE.CylinderGeometry(0.18, 0.22, 3.6, 6), mat(0x8a6133));
+    post1.position.set(-1.7, 1.8, 0); homeGate.add(post1);
+    const post2 = new THREE.Mesh(new THREE.CylinderGeometry(0.18, 0.22, 3.6, 6), mat(0x8a6133));
+    post2.position.set(1.7, 1.8, 0); homeGate.add(post2);
+    homeGate.position.set(0, 0, 80);
+    scene.add(homeGate);
+    facilities.push({ id: 'overworld_home', name: 'ホームのまちへ もどる', x: 0, z: 80,
+      group: homeGate, label: makeLabel('🏠', 'ホームへ'), top: 4.2, r: 1.8 });
+
+    // 2) 各エリアの入口（道沿いに、難易度の低い順に北上）
+    const ENTRIES = [
+      { area: 0, x: -12, z: 55,  emoji: '🌿', col: 0x6bcc55, name: 'はじまりの草原' },
+      { area: 1, x:  12, z: 32,  emoji: '🌲', col: 0x3e8f3e, name: 'ざわめきの森' },
+      { area: 2, x: -22, z:  8,  emoji: '🕳️', col: 0x6e6256, name: 'しめった洞窟' },
+      { area: 3, x:  22, z: -18, emoji: '🌋', col: 0xd24a2a, name: 'ほのおの火山' },
+      { area: 4, x: -28, z: -38, emoji: '🐉', col: 0x9d6acc, name: 'りゅうの霊峰' },
+      { area: 5, x:  22, z: -56, emoji: '🏰', col: 0x4a3a6e, name: 'まおうの城' },
+      { area: 6, x:   0, z: -70, emoji: '🌌', col: 0xffd23d, name: 'いにしえの神殿' },
+    ];
+    ENTRIES.forEach(e => {
+      const area = DB.AREAS && DB.AREAS[e.area];
+      if (!area) return;
+      const unlocked = State.areaUnlocked ? State.areaUnlocked(area) : true;
+      const cleared = State.isCleared ? State.isCleared(area.id) : false;
+      buildAreaPortal(e, unlocked, cleared);
+    });
+
+    // 3) 旅人の村（装飾。入るとアイテム/小ヒント）
+    const VILLAGES = [
+      { id: 'village_west', x: -52, z: 25, name: '旅人の村', col: 0xc77f3a, emoji: '🏡' },
+      { id: 'village_east', x:  48, z: 5,  name: '商人の宿場', col: 0xd2a04a, emoji: '🏪' },
+    ];
+    VILLAGES.forEach(v => buildVillage(v));
+
+    // 4) ランダム遭遇のためのオーラ（道沿いに少数の徘徊モンスター）
+    spawnOverworldRoamers();
+  }
+
+  function makeLabel(emoji, name) {
+    const label = document.createElement('div');
+    label.className = 'world-label';
+    label.innerHTML = `<span class="wl-emoji">${emoji}</span><span class="wl-name">${name}</span>`;
+    labelLayer.appendChild(label);
+    return label;
+  }
+
+  function buildAreaPortal(e, unlocked, cleared) {
+    const g = new THREE.Group();
+    // 入口の門
+    const base = new THREE.Mesh(new THREE.CylinderGeometry(1.6, 1.9, 0.5, 16),
+      mat(0x7a6a55, { rough: 0.95 }));
+    base.position.y = 0.25; g.add(base);
+    const obelisk = new THREE.Mesh(new THREE.ConeGeometry(0.8, 3.2, 5),
+      mat(e.col, { rough: 0.5, metal: 0.2, flat: true }));
+    obelisk.position.y = 2.1; g.add(obelisk);
+    if (unlocked) {
+      // 光のリング
+      const ring = new THREE.Mesh(new THREE.TorusGeometry(1.8, 0.13, 8, 24),
+        new THREE.MeshStandardMaterial({
+          color: e.col, emissive: new THREE.Color(e.col), emissiveIntensity: 0.7,
+          transparent: true, opacity: 0.85, roughness: 0.4,
+        }));
+      ring.rotation.x = Math.PI / 2; ring.position.y = 0.4; g.add(ring);
+    }
+    if (cleared) {
+      // クリア印（金の星）
+      const star = new THREE.Mesh(new THREE.OctahedronGeometry(0.35, 0),
+        new THREE.MeshStandardMaterial({ color: 0xffd23d, emissive: 0xffd23d,
+          emissiveIntensity: 0.9, metalness: 0.5, roughness: 0.3 }));
+      star.position.y = 4.4; g.add(star);
+    }
+    g.position.set(e.x, 0, e.z); scene.add(g);
+
+    const status = !unlocked ? '🔒' : cleared ? '★' : '';
+    const label = makeLabel(e.emoji, `${e.name} ${status}`);
+    facilities.push({
+      id: 'overworld_area_' + e.area, name: e.name, areaId: e.area,
+      x: e.x, z: e.z, group: g, label, top: 5.0, r: 1.9,
+      locked: !unlocked, color: e.col,
+    });
+  }
+
+  function buildVillage(v) {
+    const g = new THREE.Group();
+    // 数軒の小さな家
+    for (let i = 0; i < 3; i++) {
+      const off = i - 1;
+      const house = new THREE.Mesh(new THREE.BoxGeometry(1.8, 1.4, 1.6),
+        mat(v.col, { rough: 0.9 }));
+      house.position.set(off * 2.3, 0.7, (i % 2) * 0.4);
+      g.add(house);
+      const roof = new THREE.Mesh(new THREE.ConeGeometry(1.5, 1.0, 4),
+        mat(shade(v.col, 0.55), { rough: 0.9 }));
+      roof.position.set(off * 2.3, 1.9, (i % 2) * 0.4); roof.rotation.y = Math.PI / 4;
+      g.add(roof);
+    }
+    g.position.set(v.x, 0, v.z); scene.add(g);
+    const label = makeLabel(v.emoji, v.name);
+    facilities.push({ id: v.id, name: v.name, x: v.x, z: v.z, group: g,
+      label, top: 3.4, r: 2.6 });
+  }
+
+  function spawnOverworldRoamers() {
+    // 各エリアの近くに、そのエリアの低レベルが少数（接触で軽い戦闘）
+    if (!DB.AREAS) return;
+    DB.AREAS.forEach((area, i) => {
+      if (!State.areaUnlocked || !State.areaUnlocked(area)) return;
+      const entry = [
+        { x: -12, z: 55 }, { x: 12, z: 32 }, { x: -22, z: 8 },
+        { x: 22, z: -18 }, { x: -28, z: -38 }, { x: 22, z: -56 }, { x: 0, z: -70 },
+      ][i];
+      if (!entry) return;
+      // 入口の周辺に 1〜2 体
+      const n = 1 + (Math.random() < 0.4 ? 1 : 0);
+      for (let k = 0; k < n; k++) {
+        const sp = area.pool[Math.floor(Math.random() * area.pool.length)];
+        const x = entry.x + (Math.random() - 0.5) * 10;
+        const z = entry.z + (Math.random() - 0.5) * 10;
+        const lvl = Math.max(1, Math.round(area.min + Math.random() * (area.max - area.min) * 0.4));
+        buildRoamer(sp, lvl, x, z, false);
+      }
+    });
   }
 
   /* ---- フィールド（徘徊モンスター）------------------------------------ */
@@ -316,20 +506,26 @@ const World = (() => {
       if (d < min && d > 0.0001) { nx = f.x + dx / d * min; nz = f.z + dz / d * min; }
     });
     // 外周
-    const bound = mode === 'field' ? 26 : 22;
+    const bound = mode === 'field' ? 26 : (mode === 'overworld' ? 78 : 22);
     nx = Math.max(-bound, Math.min(bound, nx));
-    nz = Math.max(mode === 'field' ? -26 : -22, Math.min(mode === 'field' ? 22 : 22, nz));
+    const minZ = mode === 'field' ? -26 : (mode === 'overworld' ? -78 : -22);
+    const maxZ = mode === 'overworld' ? 82 : 22;
+    nz = Math.max(minZ, Math.min(maxZ, nz));
     POS.x = nx; POS.z = nz;
 
-    // 徘徊モンスターの移動＆接触判定（フィールドのみ）
-    if (mode === 'field' && !encounterPending) {
+    // 徘徊モンスターの移動＆接触判定（フィールド or オーバーワールド）
+    if ((mode === 'field' || mode === 'overworld') && !encounterPending) {
       for (const r of roamers) {
         if (r.dead) continue;
         r.t += dt;
         if (r.t > r.turn) { r.t = 0; r.turn = 1.5 + Math.random() * 2.5; const a = Math.random() * 6.28; r.vx = Math.sin(a); r.vz = Math.cos(a); }
         r.x += r.vx * (r.speed || 2) * dt; r.z += r.vz * (r.speed || 2) * dt;
-        if (r.x < -26 || r.x > 26) { r.vx *= -1; r.x = Math.max(-26, Math.min(26, r.x)); }
-        if (r.z < -26 || r.z > 18) { r.vz *= -1; r.z = Math.max(-26, Math.min(18, r.z)); }
+        // 徘徊する範囲（オーバーワールドは広め）
+        const rb = mode === 'overworld' ? 76 : 26;
+        const rzMin = mode === 'overworld' ? -76 : -26;
+        const rzMax = mode === 'overworld' ? 78 : 18;
+        if (r.x < -rb || r.x > rb) { r.vx *= -1; r.x = Math.max(-rb, Math.min(rb, r.x)); }
+        if (r.z < rzMin || r.z > rzMax) { r.vz *= -1; r.z = Math.max(rzMin, Math.min(rzMax, r.z)); }
         r.group.position.set(r.x, 0.05 + Math.abs(Math.sin(clock * 4 + r.x)) * 0.12, r.z);
         if (Math.hypot(POS.x - r.x, POS.z - r.z) < (r.isBoss ? 2.0 : 1.5)) {
           encounterPending = true; r.dead = true;
@@ -378,9 +574,15 @@ const World = (() => {
       if (typeof onNearbyChange === 'function') onNearbyChange(nearby);
     }
 
-    // 位置の自動セーブ（町のみ・2秒ごと）
+    // 位置の自動セーブ（町・オーバーワールド・2秒ごと）
     saveT += dt;
-    if (saveT > 2) { saveT = 0; if (mode === 'town') State.setPlayerPos(POS.x, POS.z, angle); }
+    if (saveT > 2) {
+      saveT = 0;
+      if (mode === 'town') State.setPlayerPos(POS.x, POS.z, angle);
+      else if (mode === 'overworld' && State.setOverworldPos) {
+        State.setOverworldPos(POS.x, POS.z, angle);
+      }
+    }
   }
 
   let onNearbyChange = null;
@@ -434,7 +636,12 @@ const World = (() => {
   function interact() {
     if (nearby && onInteract) { savePos(); onInteract(nearby.id); }
   }
-  function savePos() { if (mode === 'town') { State.setPlayerPos(POS.x, POS.z, angle); State.save(); } }
+  function savePos() {
+    if (mode === 'town') { State.setPlayerPos(POS.x, POS.z, angle); State.save(); }
+    else if (mode === 'overworld' && State.setOverworldPos) {
+      State.setOverworldPos(POS.x, POS.z, angle); State.save();
+    }
+  }
 
   function pause() { paused = true; if (raf) { cancelAnimationFrame(raf); raf = null; } }
   function resume() { if (paused && active) { paused = false; last = performance.now(); loop(); } }

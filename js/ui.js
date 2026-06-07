@@ -49,10 +49,11 @@ const UI = (() => {
     root = document.getElementById('screen');
     closeModal();
     if (name !== 'battle' && Scene3D.active) Scene3D.dispose();
-    if (name !== 'town' && name !== 'field' && World.active) World.dispose();
+    if (name !== 'town' && name !== 'field' && name !== 'world' && World.active) World.dispose();
     if (name === 'home') renderHome();
     else if (name === 'town') renderTown();
     else if (name === 'field') renderField();
+    else if (name === 'world') renderWorld();
     else if (name === 'box') renderBox();
     else if (name === 'fusion') { fuseA = null; fuseB = null; renderFusion(); }
     else if (name === 'explore') renderExplore();
@@ -113,6 +114,84 @@ const UI = (() => {
       World.pause();
       dialogue('🧙 マスター', Story.INTRO, () => { State.setStory({ seenIntro: true }); World.resume(); });
     }
+  }
+
+  /* ===== オーバーワールド（広い冒険マップ）=========================== */
+  function renderWorld() {
+    root.innerHTML = `
+      <div class="town">
+        <canvas id="world-canvas"></canvas>
+        <div id="world-labels"></div>
+        <div class="town-hud">
+          <div class="hud-top">
+            <span class="hud-chip">🗺️ ぼうけんマップ</span>
+            <span class="hud-chip">🪙 ${State.data.gold}</span>
+            <button class="hud-menu" data-act="town">🏠 まちへ</button>
+          </div>
+          <div class="hud-goal">🧭 道に沿って進むと エリアの入口や 旅人の村がある</div>
+          <div id="joystick" class="joystick"><div id="joy-knob" class="joy-knob"></div></div>
+          <button id="enter-btn" class="enter-btn" data-act="worldInteract" disabled>はいる</button>
+        </div>
+      </div>`;
+    const cv = document.getElementById('world-canvas');
+    const labels = document.getElementById('world-labels');
+    const ok = World.init(cv, labels, onOverworldPOI, {
+      mode: 'overworld',
+      onEncounter: onOverworldEncounter,
+    });
+    if (!ok) {
+      root.innerHTML = `${header('ぼうけんマップ')}<p class="hint">3D表示が つかえない環境のようです。</p>
+        <button class="btn wide" data-act="town">まちへ もどる</button>`;
+      return;
+    }
+    World.setNearbyCallback(updateEnterBtn);
+    bindJoystick();
+  }
+
+  function onOverworldPOI(id) {
+    if (id === 'overworld_home') { show('town'); return; }
+    if (id && id.startsWith('overworld_area_')) {
+      const areaId = parseInt(id.replace('overworld_area_', ''), 10);
+      const area = (DB.AREAS && DB.AREAS[areaId]) || DB.AREAS[0];
+      if (!State.areaUnlocked(area)) {
+        World.pause();
+        showModal(`<div class="dialogue"><div class="dlg-spk">🔒 とおせんぼ</div>
+          <div class="dlg-text">「${area.name}」へは まだ 行けない。<br>かちすう ${area.reqWins} ぐらいに なったら また 来よう。</div>
+          <button class="btn primary wide" data-act="closeFacility">わかった</button></div>`, true);
+        return;
+      }
+      enterField(areaId);
+      return;
+    }
+    if (id && id.startsWith('village_')) {
+      // 旅人の村：軽い回復とゴールド少々
+      World.pause();
+      State.healAll();
+      State.addGold(20);
+      showModal(`<div class="dialogue"><div class="dlg-spk">🏡 旅人の村</div>
+        <div class="dlg-text">旅人たちが もてなしてくれた。<br>HP/MPが ぜんかいし、20ゴールドの 餞別を もらった。</div>
+        <button class="btn primary wide" data-act="closeFacility">ありがとう！</button></div>`, true);
+      return;
+    }
+  }
+
+  function onOverworldEncounter(def) {
+    // オーバーワールドの遭遇＝接触したモンスターの所属エリアを推定
+    let bestArea = DB.AREAS[0], bestRank = 99;
+    for (const a of DB.AREAS) {
+      if (a.pool.includes(def.species)) {
+        const diff = Math.abs(a.min - def.level);
+        if (diff < bestRank) { bestRank = diff; bestArea = a; }
+      }
+    }
+    const sp = DB.species(def.species);
+    const defs = [def];
+    if (Math.random() < 0.35) {
+      const s2 = bestArea.pool[Math.floor(Math.random() * bestArea.pool.length)];
+      defs.push({ species: s2, level: Math.max(1, def.level + (Math.floor(Math.random() * 3) - 1)) });
+    }
+    beginEncounter(defs, { mode: 'overworld', area: bestArea, fromOverworld: true,
+      intro: `${sp.emoji} ${sp.name}(Lv${def.level}) が しのびよってきた！` });
   }
 
   /* ===== フィールド（3D・徘徊モンスター）============================== */
@@ -213,7 +292,7 @@ const UI = (() => {
 
   /* ---- 施設に はいる ---- */
   function onFacility(id) {
-    if (id === 'gate') goScreen('explore', 'town');
+    if (id === 'gate') show('world');                  // ゲート → 広いオーバーワールドへ
     else if (id === 'exit') show('town');
     else if (id === 'fusion') goScreen('fusion', 'town');
     else if (id === 'ranch') goScreen('box', 'town');
@@ -827,7 +906,10 @@ const UI = (() => {
         (recruited.length ? `<div class="res-block recruit">${recruited.map(m => `<div>🤝 ${DB.species(m.species).emoji} ${State.displayName(m)} が なかまに なった！</div>`).join('')}</div>` : '') +
         (newAreas.length ? `<div class="res-block unlock">${newAreas.map(a => `<div>🔓 ゲートに 新しい世界「${a.name}」が！</div>`).join('')}</div>` : '') +
         goalDone;
-      btns = meta.fromField
+      btns = meta.fromOverworld
+        ? `<button class="btn primary" data-act="world">マップへ もどる</button>
+           <button class="btn" data-act="town">まちへ</button>`
+        : meta.fromField
         ? `<button class="btn primary" data-act="field">ぼうけんを つづける</button>
            <button class="btn" data-act="town">まちへ</button>`
         : `<button class="btn primary" data-act="enter" data-area="${meta.area.id}">もういちど</button>
@@ -1012,6 +1094,7 @@ const UI = (() => {
     enter: (d) => { closeModal(); startBattle(+d.area); },
     enterField: (d) => { closeModal(); enterField(+d.area); },
     field: () => { closeModal(); show('field'); },
+    world: () => { closeModal(); show('world'); },
 
     cmdAttack: () => { enterTarget('attack', null, 'enemy'); },
     cmdScout: () => { enterTarget('scout', null, 'enemy'); },
