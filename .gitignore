@@ -1,0 +1,14 @@
+# Local Claude Code config (do not publish)
+.claude/settings.local.json
+
+# Local config with secrets (Firebase keys etc.)
+js/firebase-config.local.js
+
+# Editor / OS
+.DS_Store
+Thumbs.db
+*.swp
+*~
+
+# Node (not used now, but just in case)
+node_modules/
