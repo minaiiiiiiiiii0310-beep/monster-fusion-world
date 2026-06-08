@@ -8,6 +8,7 @@ const World = (() => {
   let facilities = [];     // {id,name,emoji,x,z,r,group,label}
   let roamers = [];        // フィールドの徘徊モンスター {group,label,species,level,x,z,...}
   let chests = [];         // フィールドの宝箱
+  let npcs = [];           // 町の住人 NPC {group, path: [{x,z}], idx, t, speed, msg}
   let masterLabel;
   let keys = {}, mv = { x: 0, y: 0 };
   let active = false, paused = false;
@@ -69,7 +70,7 @@ const World = (() => {
       sun.position.set(8, 16, 10); scene.add(sun);
 
       buildGround();
-      facilities = []; roamers = []; chests = [];
+      facilities = []; roamers = []; chests = []; npcs = [];
       labelLayer.innerHTML = '';
       if (mode === 'field') buildField();
       else if (mode === 'overworld') buildOverworld();
@@ -161,6 +162,10 @@ const World = (() => {
         new THREE.MeshStandardMaterial({ color: 0xb9b2a0, roughness: 1 }));
       plaza.rotation.x = -Math.PI / 2; plaza.position.y = 0.02; scene.add(plaza);
       for (let i = 0; i < 16; i++) { const a = i / 16 * Math.PI * 2; tree(Math.cos(a) * 22, Math.sin(a) * 22); }
+      // 噴水（広場中央）
+      buildFountain();
+      // NPC（住人）
+      buildTownNPCs();
     } else {
       // フィールド：奥に行くほど色が暗い「危険ゾーン」＋まばらな木
       const danger = new THREE.Mesh(new THREE.PlaneGeometry(70, 28),
@@ -200,6 +205,134 @@ const World = (() => {
     labelLayer.appendChild(label);
 
     facilities.push({ ...f, group: g, label, top: H + 2.0 * s, doorZ: f.z + D / 2, r: Math.max(W, D) / 2 });
+  }
+
+  /* ---- 噴水（町の中央） --------------------------------------------------- */
+  function buildFountain() {
+    const g = new THREE.Group();
+    // 外周の縁
+    const ring = new THREE.Mesh(new THREE.CylinderGeometry(2.2, 2.4, 0.4, 24),
+      mat(0xaab0b8, { rough: 0.8 }));
+    ring.position.y = 0.2; g.add(ring);
+    // 水面
+    const water = new THREE.Mesh(new THREE.CylinderGeometry(2.0, 2.0, 0.18, 24),
+      new THREE.MeshStandardMaterial({ color: 0x5b9ad6, transparent: true,
+        opacity: 0.85, roughness: 0.15, metalness: 0.4 }));
+    water.position.y = 0.34; g.add(water);
+    // 中央の柱
+    const col = new THREE.Mesh(new THREE.CylinderGeometry(0.18, 0.22, 1.4, 12),
+      mat(0xaab0b8, { rough: 0.7 }));
+    col.position.y = 1.0; g.add(col);
+    // 上の水玉
+    const orb = new THREE.Mesh(new THREE.SphereGeometry(0.38, 16, 16),
+      new THREE.MeshStandardMaterial({ color: 0x7fc0ff, emissive: 0x4488cc,
+        emissiveIntensity: 0.5, transparent: true, opacity: 0.85,
+        roughness: 0.15, metalness: 0.4 }));
+    orb.position.y = 1.85; g.add(orb);
+    // 装飾の小さな水しぶき（4方向に円錐）
+    for (let i = 0; i < 4; i++) {
+      const a = i / 4 * Math.PI * 2;
+      const sp = new THREE.Mesh(new THREE.ConeGeometry(0.08, 0.5, 6),
+        new THREE.MeshStandardMaterial({ color: 0xaad8ff, transparent: true,
+          opacity: 0.55, emissive: 0x66aadd, emissiveIntensity: 0.4 }));
+      sp.position.set(Math.cos(a) * 0.35, 1.5, Math.sin(a) * 0.35);
+      sp.rotation.set(0.4 * Math.cos(a), 0, -0.4 * Math.sin(a));
+      g.add(sp);
+    }
+    g.position.set(0, 0, -3); scene.add(g);
+  }
+
+  /* ---- NPC（町の住人）— 4〜5人がパトロール路を歩く ----------------------- */
+  // 服装色のバリエーション
+  const NPC_PRESETS = [
+    { skin: 0xf0c39a, hair: 0x3a2410, outfit: 0xd24a40, emoji: '🙂',
+      msg: 'ようこそ ぼうけんしゃ！', name: 'ファミリア村人' },
+    { skin: 0xe6b48a, hair: 0xc08438, outfit: 0x4c8aa0, emoji: '😊',
+      msg: 'ゲートのおく には つよいモンスターが いるよ', name: '少年' },
+    { skin: 0xefcaa8, hair: 0x2a2a2e, outfit: 0xb56db8, emoji: '😄',
+      msg: 'ゆうごうじょで モンスターをかけあわせると 強くなるよ', name: '少女' },
+    { skin: 0xd8a07a, hair: 0xe8e0d0, outfit: 0x3a6a30, emoji: '🧓',
+      msg: 'いやはや、わしも 若いころは ぼうけんしてのう…', name: 'おじいさん' },
+    { skin: 0xf4cda8, hair: 0xc94a78, outfit: 0xffd23d, emoji: '😆',
+      msg: 'たね を のませると モンスターが ステータスUP！', name: 'にぎやかな娘' },
+  ];
+
+  function buildTownNPCs() {
+    // 広場の周りを歩くNPCたち
+    const paths = [
+      [{ x: -7, z: -2 }, { x: -7, z: 5 }, { x: -3, z: 6 }, { x: -3, z: -2 }],
+      [{ x: 7, z: 5 }, { x: 3, z: 6 }, { x: 3, z: -1 }, { x: 7, z: -1 }],
+      [{ x: 4, z: -5 }, { x: -4, z: -5 }, { x: -4, z: -3 }, { x: 4, z: -3 }],
+      [{ x: 0, z: 7 }, { x: -2, z: 8 }, { x: 2, z: 8 }],
+      [{ x: -5, z: 0 }, { x: 5, z: 0 }],
+    ];
+    NPC_PRESETS.forEach((p, i) => {
+      if (i >= paths.length) return;
+      const g = buildNPCModel(p);
+      const start = paths[i][0];
+      g.position.set(start.x, 0, start.z);
+      scene.add(g);
+      const label = document.createElement('div');
+      label.className = 'world-label npc';
+      label.innerHTML = `<span class="wl-emoji">${p.emoji}</span>`;
+      labelLayer.appendChild(label);
+      npcs.push({
+        group: g, label, path: paths[i], idx: 0, t: 0,
+        speed: 1.2 + Math.random() * 0.6, msg: p.msg, name: p.name,
+        x: start.x, z: start.z, top: 2.0,
+        phase: Math.random() * 6.28,
+        // 当たり判定（タップで話しかけるための facility 扱い）
+      });
+      // NPC を facility としても登録（タップで話せる）
+      facilities.push({
+        id: 'npc_' + i, name: p.name, x: start.x, z: start.z, group: g,
+        label, top: 2.0, r: 1.1, isNPC: true, msg: p.msg, emoji: p.emoji,
+      });
+    });
+  }
+
+  function buildNPCModel(p) {
+    const g = new THREE.Group();
+    // 体（服）
+    const body = new THREE.Mesh(new THREE.CylinderGeometry(0.32, 0.38, 0.9, 10),
+      mat(p.outfit, { rough: 0.7 }));
+    body.position.y = 0.65; g.add(body);
+    // 帯/ベルト
+    const belt = new THREE.Mesh(new THREE.CylinderGeometry(0.39, 0.39, 0.08, 12),
+      mat(0x3a2a18, { rough: 0.6 }));
+    belt.position.y = 0.42; g.add(belt);
+    // 頭
+    const head = new THREE.Mesh(new THREE.SphereGeometry(0.27, 14, 14),
+      mat(p.skin, { rough: 0.55 }));
+    head.position.y = 1.32; g.add(head);
+    // 髪（後頭部から前まで覆う半球）
+    const hair = new THREE.Mesh(
+      new THREE.SphereGeometry(0.28, 14, 12, 0, Math.PI * 2, 0, Math.PI * 0.55),
+      mat(p.hair, { rough: 0.85 }));
+    hair.position.y = 1.45; g.add(hair);
+    // 目（黒い点）
+    [-0.08, 0.08].forEach(sx => {
+      const e = new THREE.Mesh(new THREE.SphereGeometry(0.03, 8, 8),
+        new THREE.MeshBasicMaterial({ color: 0x161620 }));
+      e.position.set(sx, 1.32, 0.24); g.add(e);
+    });
+    // 腕（左右）
+    [-1, 1].forEach(s => {
+      const arm = new THREE.Mesh(new THREE.CylinderGeometry(0.08, 0.08, 0.7, 7),
+        mat(p.outfit, { rough: 0.7 }));
+      arm.position.set(s * 0.36, 0.85, 0); arm.rotation.z = s * 0.1;
+      g.add(arm);
+      const hand = new THREE.Mesh(new THREE.SphereGeometry(0.08, 10, 10),
+        mat(p.skin));
+      hand.position.set(s * 0.42, 0.5, 0); g.add(hand);
+    });
+    // 足
+    [-0.13, 0.13].forEach(sx => {
+      const leg = new THREE.Mesh(new THREE.CylinderGeometry(0.1, 0.1, 0.5, 7),
+        mat(0x3a2a18, { rough: 0.7 }));
+      leg.position.set(sx, 0.25, 0); g.add(leg);
+    });
+    return g;
   }
 
   function buildMaster() {
@@ -559,6 +692,35 @@ const World = (() => {
       fg.position.y = Math.abs(Math.sin(clock * 4)) * 0.1;
     }
 
+    // NPC パトロール（町モードのみ）
+    if (mode === 'town' && npcs.length > 0) {
+      npcs.forEach((n, ni) => {
+        const target = n.path[n.idx];
+        const dx = target.x - n.x, dz = target.z - n.z;
+        const d = Math.hypot(dx, dz);
+        if (d < 0.25) {
+          // 次の waypoint へ
+          n.idx = (n.idx + 1) % n.path.length;
+          n.t = 0;
+        } else {
+          const step = n.speed * dt;
+          n.x += dx / d * step;
+          n.z += dz / d * step;
+          // 向きを進行方向に
+          const facing = Math.atan2(dx, dz);
+          n.group.rotation.y = facing;
+          n.t += dt;
+        }
+        // 歩く上下動（小さなバウンス）
+        const walkBob = Math.abs(Math.sin(clock * 5 + n.phase)) * 0.06;
+        n.group.position.set(n.x, walkBob, n.z);
+        // facilities リスト内の対応エントリも位置を同期（タップ判定の x,z 用）
+        const facId = 'npc_' + ni;
+        const f = facilities.find(ff => ff.id === facId);
+        if (f) { f.x = n.x; f.z = n.z; }
+      });
+    }
+
     // カメラ追従
     camera.position.set(POS.x, 9.5, POS.z + 12);
     camera.lookAt(POS.x, 1.2, POS.z - 3);
@@ -659,12 +821,13 @@ const World = (() => {
     window.removeEventListener('keydown', onKey);
     window.removeEventListener('keyup', onKeyUp);
     if (renderer) { try { renderer.dispose(); renderer.forceContextLoss(); } catch (e) {} renderer = null; }
-    facilities = []; roamers = []; chests = []; keys = {}; mv = { x: 0, y: 0 }; nearby = null;
+    facilities = []; roamers = []; chests = []; npcs = []; keys = {}; mv = { x: 0, y: 0 }; nearby = null;
     active = false; paused = false; scene = null; camera = null; player = null; follower = null;
   }
 
   return {
     init, dispose, pause, resume, setMove, interact, savePos, renderFrame, setNearbyCallback,
     get active() { return active; }, get nearby() { return nearby; },
+    get facilities() { return facilities; },
   };
 })();

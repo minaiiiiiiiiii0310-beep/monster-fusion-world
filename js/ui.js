@@ -300,6 +300,16 @@ const UI = (() => {
     else if (id === 'inn') openInn();
     else if (id === 'arena') openArena();
     else if (id === 'master') openMaster();
+    else if (id && id.startsWith('npc_')) openNPCDialogue(id);
+  }
+
+  function openNPCDialogue(id) {
+    const f = (World.facilities || []).find(ff => ff.id === id);
+    if (!f) return;
+    World.pause();
+    showModal(`<div class="dialogue"><div class="dlg-spk">${f.emoji} ${f.name}</div>
+      <div class="dlg-text">${f.msg || 'こんにちは！'}</div>
+      <button class="btn primary wide" data-act="closeFacility">またね</button></div>`, true);
   }
 
   function openInn() {
