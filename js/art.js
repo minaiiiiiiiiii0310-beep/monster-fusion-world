@@ -27,8 +27,15 @@ const Art = (() => {
       if (!res.ok) return;
       const data = await res.json();
       if (Array.isArray(data && data.species)) {
-        data.species.forEach(id => state.set(id, { state: 'ok', img: null }));
+        data.species.forEach(id => state.set(id, { state: 'ok', img: null, ext: '.png' }));
       }
+      // 拡張子別 リスト（manifest 高速化用）
+      ['speciesJpg', 'speciesJpeg', 'speciesWebp'].forEach(key => {
+        const ext = '.' + key.replace('species', '').toLowerCase();
+        if (Array.isArray(data && data[key])) {
+          data[key].forEach(id => state.set(id, { state: 'ok', img: null, ext }));
+        }
+      });
     } catch (e) { /* manifest 無くてもOK：onerrorで個別判定 */ }
   }
 

@@ -1,4 +1,5 @@
 {
-  "comment": "AI生成画像のリスト（高速化用）。新しい画像を追加したら ここにも 種族IDを書くか、scripts/install-ai-art.bat が自動更新。",
-  "species": ["bea1", "bir1", "cat1", "sla1"]
+  "comment": "AI生成画像のリスト（高速化用）。species=PNG, speciesJpg=JPG。新規追加時はここに書くか scripts/install-ai-art.bat が自動更新。",
+  "species": ["bea1", "bir1", "cat1", "sla1"],
+  "speciesJpg": ["bir3", "bir4", "ser1", "ser3", "win1", "win2", "win3", "win4", "win5"]
 }
