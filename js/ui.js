@@ -307,8 +307,11 @@ const UI = (() => {
     const f = (World.facilities || []).find(ff => ff.id === id);
     if (!f) return;
     World.pause();
+    // 章に応じたフレーバーをランダム付加（住人が物語を知っている雰囲気）
+    const extra = (Story.npcFlavor && Math.random() < 0.5) ? Story.npcFlavor() : '';
+    const body = extra ? `${f.msg}<br><br><span style="opacity:.78">「${extra}」</span>` : (f.msg || 'こんにちは！');
     showModal(`<div class="dialogue"><div class="dlg-spk">${f.emoji} ${f.name}</div>
-      <div class="dlg-text">${f.msg || 'こんにちは！'}</div>
+      <div class="dlg-text">${body}</div>
       <button class="btn primary wide" data-act="closeFacility">またね</button></div>`, true);
   }
 
@@ -322,6 +325,23 @@ const UI = (() => {
   function openMaster() {
     World.pause();
     const d = State.data;
+    // サイドクエスト達成チェック
+    if (Story.newlyCompletedQuests) {
+      const newly = Story.newlyCompletedQuests();
+      if (newly.length > 0) {
+        let totalGold = 0;
+        const lines = newly.map(q => {
+          totalGold += q.reward;
+          Story.markQuestDone(q.id);
+          return `✅「${q.label}」を 達成！（+${q.reward}G）`;
+        });
+        if (totalGold > 0) State.addGold(totalGold);
+        State.save();
+        dialogue('🧙 マスター', ['すばらしい！ ちいさな いっぽも 偉業だ。'].concat(lines),
+          () => { openMaster(); });   // 続けて 通常のマスター対話を開く
+        return;
+      }
+    }
     if (d.bossBeaten && !d.story.seenEnding) {
       dialogue('🧙 マスター', Story.ENDING, () => { State.setStory({ seenEnding: true }); World.resume(); });
     } else if (Story.canAdvance()) {
