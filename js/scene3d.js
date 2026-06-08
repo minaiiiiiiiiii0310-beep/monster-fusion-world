@@ -2270,9 +2270,97 @@ const Scene3D = (() => {
   /* ---- アニメーション トリガ ----------------------------------------- */
   const find = (uid) => entries.find(e => e.uid === uid);
   function act(uid)  { const e = find(uid); if (e && !e.dead) e.anim.attack = 1; }
-  function hit(uid, kind) { const e = find(uid); if (e) { e.anim.hit = 1; e.anim.hitKind = kind; } }
-  function heal(uid) { const e = find(uid); if (e) e.anim.heal = 1; }
-  function buff(uid) { const e = find(uid); if (e) e.anim.buff = 1; }
+  function hit(uid, kind) {
+    const e = find(uid); if (!e) return;
+    e.anim.hit = 1; e.anim.hitKind = kind;
+    impactBurst(e, kind);
+  }
+  function heal(uid) {
+    const e = find(uid); if (!e) return;
+    e.anim.heal = 1;
+    healBurst(e);
+  }
+  function buff(uid) {
+    const e = find(uid); if (!e) return;
+    e.anim.buff = 1;
+    buffBurst(e);
+  }
+
+  /* 衝撃の粒子エフェクト：被弾位置に8〜12個の小球を放射状に飛ばす */
+  let burstParticles = [];   // {mesh, vx,vy,vz, age, ttl, mat}
+  function impactBurst(e, kind) {
+    const isCrit = kind === 'crit';
+    const n = isCrit ? 14 : 10;
+    const col = isCrit ? 0xffd040 : 0xff5050;
+    const cy = e.top * 0.5 + 0.5;
+    for (let i = 0; i < n; i++) {
+      const m = new THREE.Mesh(
+        new THREE.SphereGeometry(0.08 + Math.random() * 0.06, 6, 6),
+        new THREE.MeshBasicMaterial({ color: col, transparent: true, opacity: 0.95 }));
+      m.position.set(e.group.position.x, cy, e.group.position.z);
+      scene.add(m);
+      const a = Math.random() * Math.PI * 2;
+      const sp = 3.5 + Math.random() * 2.5;
+      burstParticles.push({
+        mesh: m, mat: m.material,
+        vx: Math.cos(a) * sp, vy: 2 + Math.random() * 2, vz: Math.sin(a) * sp,
+        age: 0, ttl: 0.5 + Math.random() * 0.2,
+      });
+    }
+  }
+  function healBurst(e) {
+    const n = 10;
+    const cy = e.top * 0.5 + 0.4;
+    for (let i = 0; i < n; i++) {
+      const m = new THREE.Mesh(
+        new THREE.SphereGeometry(0.07 + Math.random() * 0.04, 8, 8),
+        new THREE.MeshBasicMaterial({ color: 0x6effa0, transparent: true, opacity: 0.92 }));
+      m.position.set(e.group.position.x + (Math.random() - 0.5) * 0.6, cy, e.group.position.z + (Math.random() - 0.5) * 0.4);
+      scene.add(m);
+      burstParticles.push({
+        mesh: m, mat: m.material,
+        vx: (Math.random() - 0.5) * 0.6, vy: 1.5 + Math.random() * 1.0, vz: (Math.random() - 0.5) * 0.6,
+        age: 0, ttl: 0.7 + Math.random() * 0.3,
+      });
+    }
+  }
+  function buffBurst(e) {
+    const n = 8;
+    const cy = e.top * 0.45;
+    for (let i = 0; i < n; i++) {
+      const a = (i / n) * Math.PI * 2;
+      const m = new THREE.Mesh(
+        new THREE.OctahedronGeometry(0.09, 0),
+        new THREE.MeshBasicMaterial({ color: 0x9ac0ff, transparent: true, opacity: 0.95 }));
+      m.position.set(e.group.position.x + Math.cos(a) * 0.6, cy, e.group.position.z + Math.sin(a) * 0.6);
+      scene.add(m);
+      burstParticles.push({
+        mesh: m, mat: m.material,
+        vx: 0, vy: 1.5 + Math.random() * 0.4, vz: 0,
+        age: 0, ttl: 0.6,
+      });
+    }
+  }
+  function updateBurstParticles(dt) {
+    if (burstParticles.length === 0) return;
+    const next = [];
+    for (const p of burstParticles) {
+      p.age += dt;
+      if (p.age >= p.ttl) {
+        scene.remove(p.mesh);
+        p.mat.dispose();
+        continue;
+      }
+      // 重力
+      p.vy -= 6 * dt;
+      p.mesh.position.x += p.vx * dt;
+      p.mesh.position.y += p.vy * dt;
+      p.mesh.position.z += p.vz * dt;
+      p.mat.opacity = 0.95 * (1 - p.age / p.ttl);
+      next.push(p);
+    }
+    burstParticles = next;
+  }
   function pop(uid, text, cls) {
     const e = find(uid); if (!e) return;
     const f = document.createElement('div');
@@ -2300,6 +2388,7 @@ const Scene3D = (() => {
   }
 
   function update(dt) {
+    updateBurstParticles(dt);
     entries.forEach(e => {
       const a = e.anim, P = e.base;
       let er = 0, eg = 0, eb = 0;
@@ -2438,6 +2527,8 @@ const Scene3D = (() => {
       renderer = null;
     }
     entries = []; active = false; scene = null; camera = null;
+    burstParticles.forEach(p => { try { p.mat.dispose(); } catch (e) {} });
+    burstParticles = [];
   }
 
   function pause() { paused = true; if (raf) { cancelAnimationFrame(raf); raf = null; } }
