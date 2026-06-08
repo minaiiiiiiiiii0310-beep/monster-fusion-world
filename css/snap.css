@@ -1,0 +1,360 @@
+/* =========================================================================
+ *  snap.css  —  モンスター・スナップ用スタイル
+ * =======================================================================*/
+
+.snap-screen {
+  min-height: 100vh;
+  background: linear-gradient(180deg, #0f1428 0%, #1a1f3a 60%, #0c0f1a 100%);
+  padding: env(safe-area-inset-top, 8px) 6px env(safe-area-inset-bottom, 8px);
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  color: var(--text);
+  position: relative;
+}
+
+/* ===== トップ ===== */
+.snap-top {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 4px 6px;
+}
+.snap-back {
+  background: var(--panel); border: 1px solid var(--line);
+  color: var(--text); border-radius: 10px;
+  width: 36px; height: 36px; font-size: 18px; cursor: pointer;
+}
+.snap-info {
+  flex: 1; display: flex; gap: 12px; align-items: center; justify-content: center;
+  font-size: 13px; font-weight: 700;
+}
+.snap-turn { color: var(--gold); }
+.snap-energy { color: #7fb3ff; }
+.snap-energy b { font-size: 18px; color: #aedaff; }
+.snap-snap-btn {
+  background: linear-gradient(180deg, #ff5a5a, #c43030);
+  color: white; border: 2px solid #ffd23d;
+  padding: 6px 14px; border-radius: 14px;
+  font-weight: 900; font-size: 14px;
+  box-shadow: 0 0 12px #ffd23d88;
+  animation: snapPulse 1.5s ease-in-out infinite;
+  cursor: pointer;
+}
+.snap-snap-btn:active { transform: scale(.95); }
+@keyframes snapPulse { 50% { box-shadow: 0 0 18px #ffd23dcc; } }
+
+/* ===== 盤面 ===== */
+.snap-board {
+  display: flex;
+  flex-direction: row;
+  gap: 4px;
+  flex: 1;
+}
+.snap-lane {
+  flex: 1;
+  background: linear-gradient(180deg, #1d2438 0%, #141828 100%);
+  border: 1px solid var(--line);
+  border-radius: 12px;
+  padding: 4px;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  min-width: 0;
+}
+.snap-lane-head {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  font-size: 10px;
+  color: var(--sub);
+}
+.snap-lane-no { font-weight: 700; }
+.snap-pow {
+  background: #0008; padding: 2px 8px; border-radius: 8px;
+  font-size: 13px; font-weight: 900;
+}
+.snap-pow.lead {
+  background: var(--gold); color: #0c0f17;
+  box-shadow: 0 0 8px #ffd23dcc;
+}
+.snap-loc {
+  background: #0a0e1d; border: 1px dashed var(--line);
+  border-radius: 8px; padding: 4px 6px;
+  font-size: 9.5px; line-height: 1.25; text-align: center;
+  color: var(--text);
+}
+.snap-loc.dim { opacity: 0.4; }
+.snap-loc small { color: var(--sub); font-size: 8.5px; }
+
+.snap-row {
+  display: flex;
+  gap: 3px;
+  min-height: 78px;
+  align-items: stretch;
+}
+.snap-row.enemy { flex-direction: row-reverse; }
+.snap-row.ally { }
+
+.snap-slot {
+  flex: 1;
+  min-width: 0;
+  min-height: 78px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+.snap-slot.empty {
+  background: #00000033;
+  border: 1px dashed #ffffff22;
+  border-radius: 8px;
+  color: var(--sub);
+  font-size: 18px;
+}
+.snap-slot.empty.target {
+  border-color: var(--gold);
+  background: #ffd23d22;
+  cursor: pointer;
+  animation: targetPulse 0.8s ease-in-out infinite;
+}
+@keyframes targetPulse { 50% { background: #ffd23d44; } }
+
+/* ===== カード ===== */
+.snap-card {
+  flex: 1; min-width: 0;
+  background: linear-gradient(150deg, #3a4a6e 0%, #1d2438 100%);
+  border: 2px solid #fff8;
+  border-radius: 8px;
+  padding: 2px;
+  display: flex; flex-direction: column;
+  position: relative;
+  font-size: 9px;
+  color: #fff;
+  box-shadow: 0 2px 6px #0008, inset 0 1px 0 #ffffff44;
+  cursor: pointer;
+  transition: transform .15s ease;
+}
+.snap-card:active { transform: scale(.96); }
+.snap-card.pending {
+  border-color: var(--gold);
+  box-shadow: 0 0 12px #ffd23d88, inset 0 1px 0 #ffffff66;
+  animation: pendingPulse 1s ease-in-out infinite;
+}
+@keyframes pendingPulse { 50% { box-shadow: 0 0 18px #ffd23dcc; } }
+.snap-card.enemy-side { transform: scaleX(-1); }
+.snap-card.enemy-side > * { transform: scaleX(-1); }
+
+/* 属性カラー */
+.snap-card[data-el="fire"]    { background: linear-gradient(150deg, #ff7a30, #c43014); }
+.snap-card[data-el="water"]   { background: linear-gradient(150deg, #5ab4ff, #1a4a9a); }
+.snap-card[data-el="grass"]   { background: linear-gradient(150deg, #5fd06a, #1a6e2a); }
+.snap-card[data-el="wind"]    { background: linear-gradient(150deg, #8ae8d0, #2a8068); }
+.snap-card[data-el="earth"]   { background: linear-gradient(150deg, #c69a5b, #6a4a1a); }
+.snap-card[data-el="thunder"] { background: linear-gradient(150deg, #ffd23d, #b07e10); }
+.snap-card[data-el="light"]   { background: linear-gradient(150deg, #fff1a8, #c8a040); color: #382a10; }
+.snap-card[data-el="dark"]    { background: linear-gradient(150deg, #a06bff, #3a1888); }
+
+.snap-card-cost {
+  position: absolute; top: -6px; left: -4px;
+  background: #4285f4; color: white;
+  width: 22px; height: 22px; border-radius: 50%;
+  display: flex; align-items: center; justify-content: center;
+  font-size: 12px; font-weight: 900;
+  border: 2px solid #fff;
+  z-index: 2;
+}
+.snap-card-pow {
+  position: absolute; top: -6px; right: -4px;
+  background: var(--gold); color: #0c0f17;
+  min-width: 22px; height: 22px; padding: 0 4px; border-radius: 11px;
+  display: flex; align-items: center; justify-content: center;
+  font-size: 12px; font-weight: 900;
+  border: 2px solid #fff;
+  z-index: 2;
+}
+.snap-card-art-wrap {
+  flex: 1;
+  background: #0a0d18cc;
+  border-radius: 5px;
+  display: flex; align-items: center; justify-content: center;
+  margin: 8px 1px 2px;
+  overflow: hidden;
+  min-height: 40px;
+}
+.snap-card-art {
+  width: 100%; height: 100%; object-fit: contain;
+}
+.snap-card-art-emoji {
+  font-size: 28px;
+}
+.snap-card-name {
+  text-align: center;
+  font-size: 8.5px;
+  font-weight: 700;
+  padding: 1px 2px;
+  text-shadow: 0 1px 0 #0008;
+  overflow: hidden;
+  white-space: nowrap;
+  text-overflow: ellipsis;
+}
+
+/* ===== 手札 ===== */
+.snap-hand {
+  display: flex;
+  gap: 5px;
+  overflow-x: auto;
+  overflow-y: hidden;
+  padding: 8px 4px 4px;
+  border-top: 1px solid var(--line);
+  -webkit-overflow-scrolling: touch;
+  min-height: 130px;
+}
+.snap-card.in-hand {
+  flex: 0 0 88px;
+  min-width: 88px;
+  height: 116px;
+  font-size: 10px;
+}
+.snap-card.in-hand .snap-card-art-wrap {
+  min-height: 50px;
+}
+.snap-card.in-hand .snap-card-art-emoji {
+  font-size: 36px;
+}
+.snap-card.in-hand .snap-card-name {
+  font-size: 9.5px;
+}
+.snap-card.in-hand.disabled {
+  opacity: 0.45;
+  cursor: not-allowed;
+  filter: grayscale(0.5);
+}
+.snap-card.in-hand.selected {
+  outline: 3px solid var(--gold);
+  outline-offset: 1px;
+  transform: translateY(-6px) scale(1.04);
+  box-shadow: 0 6px 18px #ffd23daa;
+}
+.snap-card-ability {
+  font-size: 7.5px;
+  background: #00000088;
+  padding: 1px 3px;
+  border-radius: 3px;
+  margin: 0 2px 2px;
+  line-height: 1.15;
+  text-align: center;
+}
+
+.snap-no-hand {
+  color: var(--sub);
+  text-align: center;
+  padding: 20px;
+  width: 100%;
+}
+
+/* ===== ログ ===== */
+.snap-log {
+  font-size: 11px;
+  color: var(--sub);
+  background: #0006;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  padding: 4px 8px;
+  min-height: 40px;
+  max-height: 70px;
+  overflow-y: auto;
+}
+.snap-log div {
+  padding: 1px 0;
+  border-bottom: 1px solid #ffffff11;
+}
+.snap-log div:last-child { border-bottom: none; color: var(--text); }
+
+/* ===== フッター ===== */
+.snap-foot {
+  display: flex;
+  justify-content: center;
+  padding: 4px;
+}
+.snap-end-btn {
+  background: linear-gradient(180deg, #56d364, #2a8a3a);
+  color: white;
+  border: 2px solid #ffffff44;
+  padding: 12px 32px;
+  border-radius: 14px;
+  font-size: 16px;
+  font-weight: 800;
+  cursor: pointer;
+  box-shadow: 0 4px 12px #56d36488;
+  min-width: 200px;
+}
+.snap-end-btn:active { transform: scale(.96); }
+.snap-end-btn.pass {
+  background: linear-gradient(180deg, #5b8cff, #3a64e0);
+  box-shadow: 0 4px 12px #5b8cff88;
+}
+
+/* ===== 結果画面 ===== */
+.snap-result {
+  align-items: center;
+  justify-content: center;
+  text-align: center;
+  padding: 24px;
+}
+.snap-result h1 {
+  font-size: 36px;
+  margin: 0 0 16px;
+  text-shadow: 0 4px 0 #0008;
+}
+.snap-result h1.win { color: var(--gold); }
+.snap-result h1.lose { color: #ff6b6b; }
+.snap-result h1.tie { color: var(--sub); }
+.snap-result-lanes {
+  font-size: 18px;
+  color: var(--gold);
+  font-weight: 700;
+  margin-bottom: 16px;
+}
+.snap-result-detail {
+  background: var(--panel);
+  border: 1px solid var(--line);
+  border-radius: 12px;
+  padding: 14px;
+  margin: 0 16px 24px;
+  font-size: 12.5px;
+  text-align: left;
+  width: 100%;
+  max-width: 360px;
+}
+.snap-result-lane {
+  padding: 6px 0;
+  border-bottom: 1px solid var(--line);
+}
+.snap-result-lane:last-child { border-bottom: none; }
+.snap-result-actions {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  width: 100%;
+  max-width: 280px;
+}
+
+/* ===== 横画面（landscape）対応 ===== */
+@media (orientation: landscape) and (max-height: 600px) {
+  .snap-screen { padding: 4px; }
+  .snap-top { padding: 2px; gap: 4px; }
+  .snap-back { width: 30px; height: 30px; font-size: 14px; }
+  .snap-info { font-size: 11px; }
+  .snap-energy b { font-size: 14px; }
+  .snap-snap-btn { padding: 4px 10px; font-size: 12px; }
+  .snap-board { gap: 2px; }
+  .snap-lane { padding: 2px; gap: 2px; }
+  .snap-row { min-height: 60px; }
+  .snap-slot { min-height: 60px; }
+  .snap-card-art-emoji { font-size: 22px; }
+  .snap-card.in-hand { flex: 0 0 70px; min-width: 70px; height: 92px; }
+  .snap-card.in-hand .snap-card-art-emoji { font-size: 28px; }
+  .snap-hand { min-height: 100px; }
+  .snap-log { max-height: 40px; min-height: 24px; }
+  .snap-end-btn { padding: 8px 20px; font-size: 13px; min-width: 140px; }
+}

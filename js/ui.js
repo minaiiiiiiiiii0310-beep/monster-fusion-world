@@ -61,6 +61,7 @@ const UI = (() => {
     else if (name === 'dex') renderDex();
     else if (name === 'settings') renderSettings();
     else if (name === 'battle') renderBattle();
+    else if (name === 'snap') renderSnap();
     window.scrollTo(0, 0);
     // BGM をシーンに合わせて切り替え
     if (typeof SoundFX !== 'undefined') {
@@ -88,6 +89,9 @@ const UI = (() => {
         <p class="title-sub">— ゆうごうと ぼうけんの ものがたり —</p>
         <div class="pp-emojis">${emojis}</div>
         <button class="menu-btn big start" data-act="startAdventure"><span class="mi">▶</span>${has ? 'つづきから' : 'ぼうけんを はじめる'}</button>
+        <button class="menu-btn big start" data-act="startSnap" style="margin-top:10px;background:linear-gradient(180deg,#ff7a30,#c43014);border-color:#ffd23d;">
+          <span class="mi">🎴</span>モンスター・スナップ
+        </button>
         <div class="title-mini">
           <button class="btn ghost" data-act="dexFromTitle">📖 ずかん</button>
           <button class="btn ghost" data-act="settingsFromTitle">⚙️ せってい</button>
@@ -127,6 +131,15 @@ const UI = (() => {
       World.pause();
       dialogue('🧙 マスター', Story.INTRO, () => { State.setStory({ seenIntro: true }); World.resume(); });
     }
+  }
+
+  /* ===== モンスター・スナップ ========================================= */
+  function renderSnap() {
+    if (typeof SnapUI === 'undefined') {
+      root.innerHTML = `${header('モンスター・スナップ')}<p class="hint">スナップ・モジュールが読み込まれていません。</p>`;
+      return;
+    }
+    SnapUI.start({ onExit: () => show('home') });
   }
 
   /* ===== オーバーワールド（広い冒険マップ）=========================== */
@@ -1326,6 +1339,14 @@ const UI = (() => {
     enterField: (d) => { closeModal(); enterField(+d.area); },
     field: () => { closeModal(); show('field'); },
     world: () => { closeModal(); show('world'); },
+    startSnap: () => { show('snap'); },
+    snapPick: (d) => SnapUI.pickCard(+d.uid),
+    snapDrop: (d) => SnapUI.dropOn(+d.lane),
+    snapUnplay: (d) => SnapUI.unplayCard(+d.uid),
+    snapEndTurn: () => SnapUI.endTurn(),
+    snapSnap: () => SnapUI.snap(),
+    snapRestart: () => SnapUI.restart(),
+    snapExit: () => { SnapUI.exit(); show('home'); },
 
     cmdAttack: () => { enterTarget('attack', null, 'enemy'); },
     cmdScout: () => { enterTarget('scout', null, 'enemy'); },
