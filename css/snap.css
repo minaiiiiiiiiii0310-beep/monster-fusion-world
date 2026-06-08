@@ -431,6 +431,90 @@
   .snap-banner.snap { padding: 12px 28px; font-size: 18px; }
 }
 
+/* ===== フェーズ表示 ===== */
+.phase-bar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 2px 8px;
+  font-size: 11px;
+  gap: 8px;
+}
+.phase-tag {
+  font-weight: 800;
+  padding: 3px 10px;
+  border-radius: 12px;
+  font-size: 12px;
+}
+.phase-tag.deploy {
+  background: #5b8cff33;
+  color: #aedaff;
+  border: 1px solid #5b8cff88;
+}
+.phase-tag.attack {
+  background: #ff6b6b33;
+  color: #ffb3b3;
+  border: 1px solid #ff6b6b88;
+}
+.phase-hint {
+  flex: 1;
+  text-align: right;
+  font-size: 11px;
+  color: var(--sub);
+}
+
+/* 攻撃モード視覚 */
+.lane-card.attack-ready {
+  outline: 3px solid #56d364;
+  outline-offset: 2px;
+  cursor: pointer;
+  animation: readyPulse 1.4s ease-in-out infinite;
+}
+@keyframes readyPulse {
+  50% { outline-color: #aef8b0; box-shadow: 0 0 16px #56d36488; }
+}
+.lane-card.attack-selected {
+  outline: 4px solid var(--gold);
+  outline-offset: 2px;
+  transform: translateY(-4px) scale(1.05);
+  box-shadow: 0 8px 22px #ffd23daa;
+  z-index: 5;
+}
+.lane-card.attack-target {
+  outline: 3px dashed #ff6b6b;
+  outline-offset: 2px;
+  cursor: crosshair;
+  animation: targetGlow 0.8s ease-in-out infinite;
+}
+@keyframes targetGlow {
+  50% { box-shadow: 0 0 24px #ff6b6bcc; transform: scale(1.04); }
+}
+.lane-card.attacked {
+  opacity: 0.55;
+  filter: grayscale(0.7);
+}
+.lane-card.attacked::after {
+  content: '✓';
+  position: absolute;
+  top: 50%; left: 50%;
+  transform: translate(-50%, -50%);
+  font-size: 36px;
+  color: #56d364;
+  text-shadow: 0 0 8px #000, 0 0 12px #56d364;
+  pointer-events: none;
+  z-index: 4;
+}
+
+.snap-screen.phase-attack {
+  background: linear-gradient(180deg, #2a1a1f 0%, #1f1218 60%, #1a0a0e 100%);
+}
+
+.snap-end-btn.battle {
+  background: linear-gradient(180deg, #ff5a5a, #c43030);
+  border: 2px solid #ffd23d;
+  box-shadow: 0 4px 12px #ff6b6b88;
+}
+
 /* ===== アニメーション ===== */
 @keyframes cardEnter {
   0%   { opacity: 0; transform: translateY(-20px) scale(.7); }

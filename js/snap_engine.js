@@ -52,6 +52,7 @@ const SnapEngine = (() => {
       extraCost: { ally: 0, enemy: 0 },     // ホットスワップ等の 追加エネルギー消費
       justRevealed: [],                     // 直前ターンに 公開された カード uid（アニメ用）
       lastTurnLog: [],                      // 直前ターンの ハイライト
+      phase: 'deploy',                      // 'deploy' | 'attack' | 'end'
     };
     // 初期手札 5枚
     drawN('ally', INITIAL_HAND);
@@ -157,7 +158,7 @@ const SnapEngine = (() => {
     return { ok: true };
   }
 
-  /* ----- ターン終了: 両者の pending を同時公開・能力解決・バトル・次ターン ----- */
+  /* ----- 配置フェーズ終了: 両者の pending を同時公開 → attack フェーズへ ----- */
   function endTurn() {
     if (!G || G.over) return G;
     G.lastTurnLog = [];
@@ -175,9 +176,9 @@ const SnapEngine = (() => {
     });
     G.justRevealed = justUids;
     G.pending = { ally: [], enemy: [] };
-    G.extraCost = { ally: 0, enemy: 0 };   // 翌ターンに 持ち越さない
+    G.extraCost = { ally: 0, enemy: 0 };
 
-    // 2) onReveal を順番に発動（敵→味方）
+    // 2) onReveal（敵→味方）
     revealed.enemy.forEach(r => triggerOnReveal(r.card, r.lane, 'enemy'));
     revealed.ally.forEach(r => triggerOnReveal(r.card, r.lane, 'ally'));
 
@@ -185,71 +186,105 @@ const SnapEngine = (() => {
     revealed.enemy.forEach(r => triggerLocationOnPlace(r.card, r.lane, 'enemy'));
     revealed.ally.forEach(r => triggerLocationOnPlace(r.card, r.lane, 'ally'));
 
-    // 4) ★ バトルフェーズ：両陣営が衝突しているレーンで HP ダメージ交換
-    runBattlePhase();
+    // 4) attack フェーズ開始: 全カードの attacked フラグを リセット
+    forEachCard((card) => { card.attacked = false; });
+    G.phase = 'attack';
+    return G;
+  }
 
-    // 5) End of turn 能力（盤上の全カード）
+  /* ----- プレイヤー：1枚で 1枚を 攻撃 -----
+   *   attacker は 同レーン の 敵 1枚を 選んで 攻撃。
+   *   攻撃済みの カードは 同ターン中 再攻撃 不可。
+   */
+  function attack(side, attackerUid, targetUid) {
+    if (!G || G.over) return { ok: false, msg: 'ゲーム終了済み' };
+    if (G.phase !== 'attack') return { ok: false, msg: '戦闘フェーズ外' };
+    const opp = side === 'ally' ? 'enemy' : 'ally';
+    let attacker = null, attackerLane = -1;
+    let target = null, targetLane = -1;
+    G.board.forEach((slot, i) => {
+      const a = slot[side].find(c => c.uid === attackerUid);
+      if (a) { attacker = a; attackerLane = i; }
+      const t = slot[opp].find(c => c.uid === targetUid);
+      if (t) { target = t; targetLane = i; }
+    });
+    if (!attacker) return { ok: false, msg: '攻撃カードが見つからない' };
+    if (!target) return { ok: false, msg: '目標が見つからない' };
+    if (attacker.attacked) return { ok: false, msg: 'すでに攻撃済み' };
+    if (attackerLane !== targetLane) return { ok: false, msg: '同レーンのみ攻撃可' };
+    // ダメージ計算
+    const pow = effectivePow(attacker, attackerLane, side);
+    const dmgInfo = applyDamage(target, pow, attacker);
+    // double_strike: 2回攻撃
+    if (attacker.ability === 'double_strike' && target.hp > 0) {
+      applyDamage(target, pow, attacker);
+    }
+    attacker.attacked = true;
+    G.log.push(`${side === 'ally' ? '★' : '◆'} ${attacker.name} → ${target.name} に ${pow}DMG`);
+    if (target.hp <= 0) destroyCard(target, targetLane, opp);
+    return { ok: true, damage: pow };
+  }
+
+  /* ----- 戦闘フェーズ終了: CPU が 攻撃 → endOfTurn → 次ターン ----- */
+  function finishCombat() {
+    if (!G || G.over) return G;
+    if (G.phase !== 'attack') return G;
+
+    // 1) CPU の 攻撃
+    cpuAttackPhase();
+
+    // 2) End of turn 能力（盤上の全カード）
     forEachCard((card, lane, side) => triggerEndOfTurn(card, lane, side));
 
-    // 6) ロケーションの onTurnEnd
+    // 3) ロケーションの onTurnEnd
     G.board.forEach((lane, idx) => {
       if (lane.location.onTurnEnd) lane.location.onTurnEnd(idx, null, api());
     });
 
-    // 7) 次ターン or ゲーム終了
+    // 4) 次ターン or ゲーム終了
     if (G.turn >= MAX_TURN) {
       finishGame();
+      G.phase = 'end';
     } else {
       G.turn += 1;
       G.energy.ally = Math.min(8, G.turn);
       G.energy.enemy = Math.min(8, G.turn);
-      // 次のロケーション公開（ターン2でレーン2、ターン3でレーン3）
       if (G.turn === 2) G.board[1].locationRevealed = true;
       if (G.turn === 3) G.board[2].locationRevealed = true;
       drawN('ally', 1);
       drawN('enemy', 1);
+      G.phase = 'deploy';
     }
     return G;
   }
 
-  /* ----- バトルフェーズ -----
-   * 両陣営の カードが いる レーンで、各カードは 相手の最強カードの POW の
-   * 半分の ダメージを 受ける（最低1）。
-   * シールド能力で 半減、taunt が いれば 集中砲火。
+  /* ----- CPU 攻撃 AI:
+   *   各 enemy カードが 同レーンの 最も HP の 低い 味方を 狙う。
+   *   HP 同じなら POW が 高い 脅威を 優先。
    */
-  function runBattlePhase() {
+  function cpuAttackPhase() {
     G.board.forEach((slot, laneIdx) => {
-      if (!slot.ally.length || !slot.enemy.length) return;
-      // 最強カードを 双方の "代表" として 互いを 攻撃
-      const allyChamp = slot.ally.reduce((a, b) =>
-        effectivePow(a, laneIdx, 'ally') >= effectivePow(b, laneIdx, 'ally') ? a : b);
-      const enemyChamp = slot.enemy.reduce((a, b) =>
-        effectivePow(a, laneIdx, 'enemy') >= effectivePow(b, laneIdx, 'enemy') ? a : b);
-      const allyPow = effectivePow(allyChamp, laneIdx, 'ally');
-      const enemyPow = effectivePow(enemyChamp, laneIdx, 'enemy');
-      const dmgToAlly = Math.max(1, Math.ceil(enemyPow / 2));
-      const dmgToEnemy = Math.max(1, Math.ceil(allyPow / 2));
-      // 全カードに ダメージ。攻撃側は それぞれの champ
-      slot.ally.forEach(c => {
-        applyDamage(c, dmgToAlly, enemyChamp);
-        // double_strike: 2回ダメージ
-        if (enemyChamp.ability === 'double_strike') applyDamage(c, dmgToAlly, enemyChamp);
+      if (!slot.enemy.length || !slot.ally.length) return;
+      slot.enemy.forEach(attacker => {
+        if (attacker.attacked) return;
+        const targets = slot.ally.filter(c => c.hp > 0);
+        if (!targets.length) return;
+        // 最弱 HP → 高 POW を 優先
+        let target = targets[0];
+        targets.forEach(t => {
+          if (t.hp < target.hp) target = t;
+          else if (t.hp === target.hp && t.pow > target.pow) target = t;
+        });
+        const pow = effectivePow(attacker, laneIdx, 'enemy');
+        applyDamage(target, pow, attacker);
+        if (attacker.ability === 'double_strike' && target.hp > 0) {
+          applyDamage(target, pow, attacker);
+        }
+        attacker.attacked = true;
+        G.log.push(`◆ ${attacker.name} → ${target.name} に ${pow}DMG`);
+        if (target.hp <= 0) destroyCard(target, laneIdx, 'ally');
       });
-      slot.enemy.forEach(c => {
-        applyDamage(c, dmgToEnemy, allyChamp);
-        if (allyChamp.ability === 'double_strike') applyDamage(c, dmgToEnemy, allyChamp);
-      });
-      G.log.push(`⚔ レーン${laneIdx + 1}: 戦闘！ 味方-${dmgToAlly} / 敵-${dmgToEnemy}`);
     });
-    // 0 HP のカードを 一括破壊
-    const toDestroy = [];
-    forEachCard((card, lane, side) => {
-      if (card.hp <= 0 && !card._dying) {
-        card._dying = true;
-        toDestroy.push({ card, lane, side });
-      }
-    });
-    toDestroy.forEach(d => destroyCard(d.card, d.lane, d.side));
   }
 
   function applyDamage(card, dmg, attacker) {
@@ -659,6 +694,7 @@ const SnapEngine = (() => {
   return {
     MAX_TURN, HAND_MAX, INITIAL_HAND, SLOTS_PER_LANE, SWAP_FEE, HP_PER_POW,
     start, state, play, unplay, withdraw, endTurn,
+    attack, finishCombat,
     declareSnap, retreat, cpuShouldSnap, applyRetreatPenalty,
     effectivePow, totals, destroyCard,
   };
