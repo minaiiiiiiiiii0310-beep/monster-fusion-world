@@ -2270,10 +2270,17 @@ const Scene3D = (() => {
   /* ---- アニメーション トリガ ----------------------------------------- */
   const find = (uid) => entries.find(e => e.uid === uid);
   function act(uid)  { const e = find(uid); if (e && !e.dead) e.anim.attack = 1; }
-  function hit(uid, kind) {
+  function hit(uid, kind, el, attackerUid) {
     const e = find(uid); if (!e) return;
     e.anim.hit = 1; e.anim.hitKind = kind;
-    impactBurst(e, kind);
+    // 属性別エフェクト（魔法）→ 通常打撃なら従来の赤バースト
+    if (el && el !== 'none') {
+      const atk = attackerUid != null ? find(attackerUid) : null;
+      elementProjectile(atk, e, el);
+      elementBurst(e, el);
+    } else {
+      impactBurst(e, kind);
+    }
   }
   function heal(uid) {
     const e = find(uid); if (!e) return;
@@ -2284,6 +2291,99 @@ const Scene3D = (() => {
     const e = find(uid); if (!e) return;
     e.anim.buff = 1;
     buffBurst(e);
+  }
+
+  /* 属性別の色と粒子形状 */
+  const EL_COLORS = {
+    fire:    { main: 0xff6a14, hl: 0xffd040, emit: 0xff3a00, geom: 'cone' },
+    water:   { main: 0x3da4ff, hl: 0xc8e8ff, emit: 0x1a64aa, geom: 'crystal' },
+    grass:   { main: 0x5fd06a, hl: 0xb6f0a8, emit: 0x2a8a2a, geom: 'leaf' },
+    wind:    { main: 0xaeefe0, hl: 0xffffff, emit: 0x4ad0b0, geom: 'sphere' },
+    earth:   { main: 0xc69a5b, hl: 0xefd09a, emit: 0x6b4a20, geom: 'rock' },
+    thunder: { main: 0xffd23d, hl: 0xfff0a0, emit: 0xffa000, geom: 'bolt' },
+    light:   { main: 0xfff1a8, hl: 0xffffff, emit: 0xffd544, geom: 'sphere' },
+    dark:    { main: 0xa06bff, hl: 0xe0c0ff, emit: 0x5a30a0, geom: 'tendril' },
+    none:    { main: 0xff5050, hl: 0xffaaaa, emit: 0xff2030, geom: 'sphere' },
+  };
+  function makeElementMesh(el, scale = 1) {
+    const c = EL_COLORS[el] || EL_COLORS.none;
+    let g;
+    switch (c.geom) {
+      case 'cone':
+        g = new THREE.ConeGeometry(0.1 * scale, 0.28 * scale, 5); break;
+      case 'crystal':
+        g = new THREE.OctahedronGeometry(0.1 * scale, 0); break;
+      case 'leaf':
+        g = new THREE.ConeGeometry(0.08 * scale, 0.22 * scale, 3); break;
+      case 'rock':
+        g = new THREE.DodecahedronGeometry(0.1 * scale, 0); break;
+      case 'bolt':
+        g = new THREE.ConeGeometry(0.06 * scale, 0.34 * scale, 3); break;
+      case 'tendril':
+        g = new THREE.ConeGeometry(0.06 * scale, 0.32 * scale, 4); break;
+      default:
+        g = new THREE.SphereGeometry(0.1 * scale, 8, 8);
+    }
+    const m = new THREE.Mesh(g, new THREE.MeshBasicMaterial({
+      color: c.main, transparent: true, opacity: 0.95,
+    }));
+    m.material.emissive = new THREE.Color(c.emit);
+    return m;
+  }
+
+  /* 属性別の被弾バースト */
+  function elementBurst(e, el) {
+    const c = EL_COLORS[el] || EL_COLORS.none;
+    const n = el === 'fire' || el === 'thunder' ? 14 : 11;
+    const cy = e.top * 0.55 + 0.3;
+    for (let i = 0; i < n; i++) {
+      const m = makeElementMesh(el, 0.8 + Math.random() * 0.6);
+      m.position.set(e.group.position.x, cy, e.group.position.z);
+      m.rotation.set(Math.random() * 6.28, Math.random() * 6.28, Math.random() * 6.28);
+      scene.add(m);
+      const a = Math.random() * Math.PI * 2;
+      const sp = 3.0 + Math.random() * 2.5;
+      const upBias = (el === 'fire' || el === 'thunder' || el === 'light') ? 2.5 : 1.2;
+      burstParticles.push({
+        mesh: m, mat: m.material,
+        vx: Math.cos(a) * sp, vy: upBias + Math.random() * 2.0, vz: Math.sin(a) * sp,
+        rx: (Math.random() - 0.5) * 4, ry: (Math.random() - 0.5) * 4, rz: (Math.random() - 0.5) * 4,
+        age: 0, ttl: 0.55 + Math.random() * 0.3,
+        gravity: (el === 'fire' || el === 'thunder' || el === 'light' || el === 'wind') ? -2.5 : -6,
+      });
+    }
+    // 中心の閃光
+    const flash = new THREE.Mesh(new THREE.SphereGeometry(0.5, 18, 18),
+      new THREE.MeshBasicMaterial({
+        color: c.hl, transparent: true, opacity: 0.85,
+      }));
+    flash.material.emissive = new THREE.Color(c.main);
+    flash.position.set(e.group.position.x, cy, e.group.position.z);
+    scene.add(flash);
+    burstParticles.push({
+      mesh: flash, mat: flash.material,
+      vx: 0, vy: 0, vz: 0, rx: 0, ry: 0, rz: 0,
+      age: 0, ttl: 0.28, scale: 1, scaleVel: 3.0, gravity: 0,
+    });
+  }
+
+  /* 属性別の投射体（攻撃側 → 被弾側） */
+  function elementProjectile(atk, tgt, el) {
+    if (!atk || !tgt) return;
+    const c = EL_COLORS[el] || EL_COLORS.none;
+    const sx = atk.group.position.x, sy = atk.top * 0.55, sz = atk.group.position.z;
+    const tx = tgt.group.position.x, ty = tgt.top * 0.55 + 0.3, tz = tgt.group.position.z;
+    const dx = tx - sx, dy = ty - sy, dz = tz - sz;
+    const ttl = 0.32;
+    const proj = makeElementMesh(el, 1.4);
+    proj.position.set(sx, sy + 0.5, sz);
+    scene.add(proj);
+    burstParticles.push({
+      mesh: proj, mat: proj.material,
+      vx: dx / ttl, vy: dy / ttl, vz: dz / ttl,
+      rx: 0, ry: el === 'wind' ? 12 : 6, rz: 0,
+      age: 0, ttl, gravity: 0, fade: 0.4,
+    });
   }
 
   /* 衝撃の粒子エフェクト：被弾位置に8〜12個の小球を放射状に飛ばす */
@@ -2348,15 +2448,29 @@ const Scene3D = (() => {
       p.age += dt;
       if (p.age >= p.ttl) {
         scene.remove(p.mesh);
-        p.mat.dispose();
+        try { p.mat.dispose(); } catch (e) {}
+        try { p.mesh.geometry && p.mesh.geometry.dispose(); } catch (e) {}
         continue;
       }
-      // 重力
-      p.vy -= 6 * dt;
+      // 位置
+      p.vy += (p.gravity != null ? p.gravity : -6) * dt;
       p.mesh.position.x += p.vx * dt;
       p.mesh.position.y += p.vy * dt;
       p.mesh.position.z += p.vz * dt;
-      p.mat.opacity = 0.95 * (1 - p.age / p.ttl);
+      // 回転
+      if (p.rx) p.mesh.rotation.x += p.rx * dt;
+      if (p.ry) p.mesh.rotation.y += p.ry * dt;
+      if (p.rz) p.mesh.rotation.z += p.rz * dt;
+      // スケール変化（閃光の拡大用）
+      if (p.scaleVel) {
+        p.scale = (p.scale || 1) + p.scaleVel * dt;
+        p.mesh.scale.setScalar(p.scale);
+      }
+      // 透明度
+      const t = p.age / p.ttl;
+      const fadeStart = p.fade != null ? p.fade : 0;
+      const baseOp = (p.scaleVel ? 0.85 : 0.95);
+      p.mat.opacity = baseOp * Math.max(0, 1 - (t - fadeStart) / Math.max(0.0001, (1 - fadeStart)));
       next.push(p);
     }
     burstParticles = next;

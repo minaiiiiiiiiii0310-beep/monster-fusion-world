@@ -805,7 +805,11 @@ const UI = (() => {
       pushLog(st.text);
       if (bs.use3d) {
         if (st.actorUid != null && st.mpAfter != null) Scene3D.act(st.actorUid);
-        if (st.fx === 'hit' || st.fx === 'crit') Scene3D.hit(st.targetUid, st.fx);
+        if (st.fx === 'hit' || st.fx === 'crit') {
+          // 魔法スキルは属性別、物理は通常の赤バースト
+          const magicEl = st.skillType === 'magic' ? st.el : null;
+          Scene3D.hit(st.targetUid, st.fx, magicEl, st.attackerUid);
+        }
         else if (st.fx === 'heal') Scene3D.heal(st.targetUid);
         else if (st.fx === 'buff') Scene3D.buff(st.targetUid);
         Scene3D.updateBars(bs.dispHP, bs.dispMP);

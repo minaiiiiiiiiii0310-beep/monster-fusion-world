@@ -321,7 +321,8 @@ const Battle = (() => {
         t.hp = Math.min(t.maxHP, t.hp + amount);
         const healed = t.hp - before;
         steps.push({ text: `${t.name} の HPが ${healed} かいふくした`, targetSel: sel(t),
-                     targetUid: t.uid, hpAfter: t.hp, fx: 'heal', amount: healed });
+                     targetUid: t.uid, hpAfter: t.hp, fx: 'heal', amount: healed,
+                     el: 'light', skillType: 'heal', attackerUid: actor.uid });
       });
       return;
     }
@@ -364,7 +365,8 @@ const Battle = (() => {
         else if (elMult >= 1.5) tag = 'こうかは ばつぐん！ ';
         else if (elMult <= 0.8) tag = 'いまひとつ… ';
         steps.push({ text: `${tag}${t.name} に ${dmg} のダメージ！`, targetSel: sel(t),
-                     targetUid: t.uid, hpAfter: t.hp, fx: crit ? 'crit' : 'hit', amount: dmg });
+                     targetUid: t.uid, hpAfter: t.hp, fx: crit ? 'crit' : 'hit', amount: dmg,
+                     el: useSkill.el, skillType: useSkill.type, attackerUid: actor.uid });
         if (t.hp <= 0 && t.alive) {
           t.alive = false;
           steps.push({ text: `${t.name} を たおした！`, targetSel: sel(t), fx: null });
