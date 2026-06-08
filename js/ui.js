@@ -666,15 +666,47 @@ const UI = (() => {
       ((bs.targetSide === 'enemy' && side === 'enemy') || (bs.targetSide === 'ally' && side === 'ally'));
     const buffs = Object.keys(c.buffs).length
       ? `<span class="cbuff">${c.buffs.atk ? '⚔️' : ''}${c.buffs.def ? '🛡️' : ''}</span>` : '';
+    const sp = DB.species(c.species) || {};
+    const el = sp.el || 'none';
+    const rank = sp.rank || 1;
+    const rankLabel = (DB.rankLabel ? DB.rankLabel(sp) : '') || '';
+    const hpPct = pct(hp, c.maxHP);
+    const mpPct = pct(mp, c.maxMP);
+    const hpBarCls = hpPct < 25 ? 'low' : hpPct < 50 ? 'mid' : '';
     return `
       <div class="combatant ${side} ${c.alive ? '' : 'dead'} ${targetable ? 'targetable' : ''}"
-           data-side="${side}" data-index="${c.index}"
+           data-side="${side}" data-index="${c.index}" data-el="${el}" data-rank="${rank}"
            ${targetable ? `data-act="pickTarget" data-uid="${c.uid}"` : ''}>
-        <div class="cb-emoji">${c.emoji}</div>
-        <div class="cb-name">${c.name} <span class="lv">Lv${c.level}</span>${buffs}</div>
-        <div class="cb-hpbar"><span style="width:${pct(hp, c.maxHP)}%"></span></div>
-        <div class="cb-nums">HP ${Math.max(0, Math.round(hp))}${side === 'ally' ? ` <span class="mp">MP ${Math.max(0, Math.round(mp))}</span>` : ''}</div>
+        <div class="cb-frame">
+          <div class="cb-top">
+            <span class="cb-name-text">${c.name}</span>
+            <span class="cb-lv">Lv${c.level}</span>
+          </div>
+          <div class="cb-portrait">
+            <div class="cb-emoji">${c.emoji}</div>
+            <div class="cb-el-badge" title="${el}">${elementIcon(el)}</div>
+            ${rankLabel ? `<div class="cb-rank-badge">${rankLabel}</div>` : ''}
+            ${buffs ? `<div class="cb-buffs">${buffs}</div>` : ''}
+          </div>
+          <div class="cb-stats">
+            <div class="cb-bar hp ${hpBarCls}">
+              <span class="bar-label">HP</span>
+              <span class="bar-fill" style="width:${hpPct}%"></span>
+              <span class="bar-text">${Math.max(0, Math.round(hp))}/${c.maxHP}</span>
+            </div>
+            ${side === 'ally' ? `<div class="cb-bar mp">
+              <span class="bar-label">MP</span>
+              <span class="bar-fill" style="width:${mpPct}%"></span>
+              <span class="bar-text">${Math.max(0, Math.round(mp))}/${c.maxMP}</span>
+            </div>` : ''}
+          </div>
+        </div>
       </div>`;
+  }
+
+  function elementIcon(el) {
+    return { fire:'🔥', water:'💧', grass:'🌿', wind:'💨', earth:'🪨',
+      thunder:'⚡', light:'✨', dark:'🌑', none:'⚪' }[el] || '⚪';
   }
 
   // バトル画面の組み立て（3Dアリーナ ＋ 下部UI）。最初に1回だけアリーナを作る。
@@ -685,6 +717,13 @@ const UI = (() => {
   }
 
   function buildArena() {
+    // ユーザー設定で 2D を選んでいるなら、3D を使わず最初から 2D カード描画
+    const prefer2D = (State.data.viewMode === '2d');
+    if (prefer2D) {
+      bs.use3d = false;
+      render2D();
+      return;
+    }
     root.innerHTML = `
       <div class="battle">
         <div id="arena"><canvas id="arena-canvas"></canvas><div id="hp-overlay"></div></div>
@@ -696,6 +735,9 @@ const UI = (() => {
     if (bs.use3d) {
       Scene3D.setup(Battle.cur.allies, Battle.cur.enemies);
       Scene3D.updateBars(bs.dispHP, bs.dispMP);
+    } else {
+      // 3D 初期化失敗時もきれいに 2D で続行
+      render2D();
     }
   }
 
@@ -718,20 +760,29 @@ const UI = (() => {
       <div class="cmd-area">${renderCommand()}</div>`;
   }
 
-  // WebGL非対応時の 2D フォールバック（従来表示）
+  // 2Dカード型バトル表示（Pokemon TCG / DQ風）
   function render2D() {
     const enemies = Battle.cur.enemies.map(c => combatCard(c, 'enemy')).join('');
     const allies = Battle.cur.allies.map(c => combatCard(c, 'ally')).join('');
     const logHtml = bs.log.slice(-4).map(t => `<div>${t}</div>`).join('');
+    const area = bs.meta && bs.meta.area;
+    const bgEl = area && area.pool && area.pool.length
+      ? (DB.species(area.pool[0])?.el || 'none')
+      : 'none';
     root.innerHTML = `
-      <div class="battle">
+      <div class="battle battle-2d" data-bg-el="${bgEl}">
+        <div class="bt-arena2d">
+          <div class="bt-arena-bg"></div>
+          <div class="enemy-row">${enemies}</div>
+          <div class="bt-mid">
+            <div class="bt-log">${logHtml}</div>
+          </div>
+          <div class="ally-row">${allies}</div>
+        </div>
         <div class="bt-top">
-          <span>ターン ${Battle.cur.round}</span>
+          <span>🎲 ターン ${Battle.cur.round}</span>
           <span>さくせん: ${TACTICS[State.data.tactic]}</span>
         </div>
-        <div class="enemy-row">${enemies}</div>
-        <div class="bt-log">${logHtml}</div>
-        <div class="ally-row">${allies}</div>
         <div class="cmd-area">${renderCommand()}</div>
       </div>`;
   }
@@ -1046,8 +1097,18 @@ const UI = (() => {
     const wins = State.data.wins || 0;
     const dex  = State.seenCount();
     const gold = State.data.gold || 0;
+    const vm = State.data.viewMode || '3d';
     root.innerHTML = `${header('せってい')}
       <div class="settings">
+        <div class="set-row">
+          <b>バトル表示</b>
+          <div class="set-actions">
+            <button class="btn small ${vm==='3d'?'primary':''}" data-act="setView3D">🧊 3D（プリミティブ）</button>
+            <button class="btn small ${vm==='2d'?'primary':''}" data-act="setView2D">🎴 2Dカード（Pokemon TCG風）</button>
+          </div>
+          <p class="hint">2Dカードは スマホで 軽快に動作し、絵札風で 見やすい。</p>
+        </div>
+
         <div class="set-row">
           <b>デフォルトの さくせん</b>
           <button class="btn" data-act="cycleTactic2">${TACTICS[State.data.tactic]}（タップで へんこう）</button>
@@ -1125,6 +1186,8 @@ const UI = (() => {
     importSave: () => importSaveData(),
     confirmImport: () => confirmImport(),
     copySave: (d) => copySave(d.blob || ''),
+    setView3D: () => { State.data.viewMode = '3d'; State.save(); renderSettings(); toast('3D表示にしました', 'ok'); },
+    setView2D: () => { State.data.viewMode = '2d'; State.save(); renderSettings(); toast('2Dカード表示にしました', 'ok'); },
     box: () => show('box'),
     fusion: () => { fuseA = null; fuseB = null; show('fusion'); },
     explore: () => show('explore'),

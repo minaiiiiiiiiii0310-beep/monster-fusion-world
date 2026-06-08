@@ -178,29 +178,213 @@ h1,h2,h3{ margin:0 0 10px; }
 .plate.enemy .pl-hp>span{ background:linear-gradient(90deg,#e05a5a,#ff9a6b); }
 .pl-mp>span{ display:block; height:100%; background:linear-gradient(90deg,#3a78d0,#7fb3ff); transition:width .3s; }
 
-/* ===== バトル ===== */
+/* ===== バトル（共通） ===== */
 .battle{ display:flex; flex-direction:column; gap:10px; }
 #bt-dyn{ display:flex; flex-direction:column; gap:10px; }
-.bt-top{ display:flex; justify-content:space-between; font-size:12px; color:var(--sub); }
-.enemy-row,.ally-row{ display:flex; justify-content:center; gap:8px; }
-.combatant{ flex:1; max-width:120px; background:var(--panel); border:1px solid var(--line);
-  border-radius:14px; padding:8px 6px; text-align:center; position:relative; transition:.15s; }
-.combatant.enemy{ background:linear-gradient(180deg,#2a2030,#1f1a28); border-color:#5a3a4f; }
-.combatant.ally{ background:linear-gradient(180deg,#1c2740,#171f33); border-color:#3a4f7a; }
-.combatant.dead{ opacity:.32; filter:grayscale(1); }
-.combatant.targetable{ border-color:var(--gold); box-shadow:0 0 10px #ffcf5b88; cursor:pointer;
-  animation:tpulse 1s ease-in-out infinite; }
-@keyframes tpulse{ 50%{ box-shadow:0 0 16px #ffcf5bcc; } }
-.cb-emoji{ font-size:38px; line-height:1.05; }
-.cb-name{ font-size:11.5px; font-weight:700; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
-.cb-name .lv{ color:var(--sub); font-weight:500; font-size:10px; }
-.cbuff{ font-size:10px; }
+.bt-top{ display:flex; justify-content:space-between; font-size:12px; color:var(--sub); padding:0 6px; }
+
+/* ===== 2Dカードバトル（Pokemon TCG / DQ風） ===== */
+.battle-2d .bt-arena2d{
+  position:relative; border-radius:18px; overflow:hidden;
+  padding:14px 8px 8px; min-height:380px;
+  border:1px solid var(--line);
+}
+.battle-2d .bt-arena-bg{
+  position:absolute; inset:0; z-index:0;
+  background:
+    radial-gradient(ellipse at 20% 15%, #ffffff22 0%, transparent 50%),
+    radial-gradient(ellipse at 80% 85%, #00000055 0%, transparent 60%),
+    linear-gradient(180deg, #364e7a 0%, #1a2444 55%, #0e1426 100%);
+}
+/* エリア属性で背景の色合いを変える */
+.battle-2d[data-bg-el="fire"]    .bt-arena-bg{ background:linear-gradient(180deg, #5a1d10, #2a0c08); }
+.battle-2d[data-bg-el="water"]   .bt-arena-bg{ background:linear-gradient(180deg, #1a3a6e, #0a1830); }
+.battle-2d[data-bg-el="grass"]   .bt-arena-bg{ background:linear-gradient(180deg, #2a5a3a, #102415); }
+.battle-2d[data-bg-el="wind"]    .bt-arena-bg{ background:linear-gradient(180deg, #2e5e6a, #122026); }
+.battle-2d[data-bg-el="earth"]   .bt-arena-bg{ background:linear-gradient(180deg, #5a4628, #241a0e); }
+.battle-2d[data-bg-el="thunder"] .bt-arena-bg{ background:linear-gradient(180deg, #5a4810, #261c08); }
+.battle-2d[data-bg-el="light"]   .bt-arena-bg{ background:linear-gradient(180deg, #6e5a2a, #2c2410); }
+.battle-2d[data-bg-el="dark"]    .bt-arena-bg{ background:linear-gradient(180deg, #1a0e36, #0a0418); }
+
+.enemy-row,.ally-row{
+  position:relative; z-index:2;
+  display:flex; justify-content:center; gap:10px; padding:4px 0;
+  perspective:600px;
+}
+.bt-mid{ position:relative; z-index:2; padding:8px 0; }
+
+/* カード本体 */
+.combatant{
+  flex:0 0 auto; width:110px; min-height:180px; position:relative;
+  background:none; border:none; padding:0;
+  transition:transform .18s ease;
+  cursor:default;
+}
+.combatant.enemy{ transform:rotate(-3deg); }
+.combatant.ally{ transform:rotate(3deg); }
+.combatant.enemy:hover{ transform:rotate(-1deg) translateY(-2px); }
+.combatant.ally:hover{ transform:rotate(1deg) translateY(-2px); }
+
+.cb-frame{
+  position:relative; height:100%; min-height:180px;
+  border-radius:14px; padding:6px;
+  background:linear-gradient(150deg, #4a587a, #2a3050);
+  border:3px solid #fff8;
+  box-shadow:
+    0 4px 12px #000c,
+    inset 0 1px 0 #ffffff66,
+    inset 0 -2px 8px #00000088;
+  display:flex; flex-direction:column;
+}
+/* 属性別カードフレーム色 */
+.combatant[data-el="fire"]    .cb-frame{ background:linear-gradient(150deg, #ff7a30 0%, #c43014 100%); border-color:#ffd040; }
+.combatant[data-el="water"]   .cb-frame{ background:linear-gradient(150deg, #5ab4ff 0%, #1a4a9a 100%); border-color:#9addff; }
+.combatant[data-el="grass"]   .cb-frame{ background:linear-gradient(150deg, #5fd06a 0%, #1a6e2a 100%); border-color:#aef0a8; }
+.combatant[data-el="wind"]    .cb-frame{ background:linear-gradient(150deg, #8ae8d0 0%, #2a8068 100%); border-color:#c8f0e4; }
+.combatant[data-el="earth"]   .cb-frame{ background:linear-gradient(150deg, #c69a5b 0%, #6a4a1a 100%); border-color:#ecca94; }
+.combatant[data-el="thunder"] .cb-frame{ background:linear-gradient(150deg, #ffd23d 0%, #b07e10 100%); border-color:#fff088; }
+.combatant[data-el="light"]   .cb-frame{ background:linear-gradient(150deg, #fff1a8 0%, #c8a040 100%); border-color:#ffffff; color:#382a10; }
+.combatant[data-el="dark"]    .cb-frame{ background:linear-gradient(150deg, #a06bff 0%, #3a1888 100%); border-color:#d8b8ff; }
+.combatant[data-el="none"]    .cb-frame{ background:linear-gradient(150deg, #b0bccc 0%, #4a5868 100%); border-color:#e0e6ed; color:#1a1a26; }
+
+.cb-top{
+  display:flex; justify-content:space-between; align-items:center;
+  padding:0 6px; margin-bottom:4px;
+  font-size:11px; color:#ffffffee; font-weight:800;
+  text-shadow:0 1px 0 #0008, 0 0 3px #0006;
+}
+.cb-name-text{
+  flex:1; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; text-align:left;
+}
+.cb-lv{
+  background:#000a; padding:1px 6px; border-radius:8px;
+  font-size:10px; color:#ffd23d; text-shadow:none;
+}
+
+/* 絵札の中央 — 巨大エモジ */
+.cb-portrait{
+  position:relative; flex:1;
+  background:radial-gradient(ellipse at 50% 45%, #ffffff22, transparent 70%), #0d1426cc;
+  border-radius:10px;
+  display:flex; align-items:center; justify-content:center;
+  margin:0 2px; overflow:hidden;
+  box-shadow:inset 0 2px 6px #0007;
+}
+.cb-emoji{
+  font-size:64px;
+  line-height:1;
+  filter:drop-shadow(0 3px 6px #000a) drop-shadow(0 0 12px #ffffff44);
+  animation:portraitBob 2.4s ease-in-out infinite;
+}
+.combatant.enemy .cb-emoji{ transform:scaleX(-1); }
+@keyframes portraitBob{ 50% { transform:translateY(-4px); } }
+.combatant.enemy .cb-emoji{ animation: portraitBobR 2.6s ease-in-out infinite; }
+@keyframes portraitBobR{ 0%,100%{ transform:scaleX(-1) translateY(0); } 50%{ transform:scaleX(-1) translateY(-4px); } }
+/* 高ランクほどグロウ */
+.combatant[data-rank="4"] .cb-emoji,
+.combatant[data-rank="5"] .cb-emoji,
+.combatant[data-rank="6"] .cb-emoji,
+.combatant[data-rank="7"] .cb-emoji{
+  filter:drop-shadow(0 3px 6px #000a) drop-shadow(0 0 14px #fff8a8aa);
+}
+.combatant[data-rank="6"] .cb-portrait,
+.combatant[data-rank="7"] .cb-portrait{
+  background:
+    radial-gradient(ellipse at 50% 45%, #ffd23d44, transparent 70%),
+    radial-gradient(ellipse at 50% 100%, #ffd23d22, transparent 50%),
+    #0d1426cc;
+  animation:godGlow 2.4s ease-in-out infinite;
+}
+@keyframes godGlow{ 50% { box-shadow:inset 0 0 18px #ffd23d77; } }
+
+.cb-el-badge{
+  position:absolute; top:6px; right:6px;
+  background:#000a; border:1.5px solid #fff8;
+  width:24px; height:24px; border-radius:50%;
+  display:flex; align-items:center; justify-content:center;
+  font-size:14px; line-height:1;
+}
+.cb-rank-badge{
+  position:absolute; top:6px; left:6px;
+  background:#000a; color:#ffd23d;
+  border:1.5px solid #fff8; padding:1px 6px;
+  border-radius:8px; font-size:10px; font-weight:900;
+  text-shadow:none;
+}
+.cb-buffs{
+  position:absolute; bottom:4px; left:4px;
+  background:#000a; padding:1px 5px; border-radius:8px;
+  font-size:11px;
+}
+
+.cb-stats{ padding:4px 4px 0; }
+.cb-bar{
+  position:relative; height:14px; margin-top:3px;
+  background:#0008; border:1px solid #ffffff33;
+  border-radius:7px; overflow:hidden;
+  font-size:9.5px; color:#fff;
+}
+.cb-bar .bar-label{
+  position:absolute; left:5px; top:50%; transform:translateY(-50%);
+  font-weight:900; z-index:2;
+  text-shadow:0 0 2px #000, 0 1px 0 #000;
+}
+.cb-bar .bar-fill{
+  display:block; height:100%;
+  background:linear-gradient(90deg,#3fbf5a,#7fe089);
+  border-radius:6px; transition:width .35s ease;
+  box-shadow:inset 0 -2px 4px #00000055;
+}
+.cb-bar.hp .bar-fill{ background:linear-gradient(90deg,#3fbf5a,#7fe089); }
+.cb-bar.hp.mid .bar-fill{ background:linear-gradient(90deg,#e09f3a,#f0c067); }
+.cb-bar.hp.low .bar-fill{ background:linear-gradient(90deg,#d23a3a,#f06a6a); animation:hpBlink 0.8s ease-in-out infinite; }
+.cb-bar.mp .bar-fill{ background:linear-gradient(90deg,#3a78d0,#7fb3ff); }
+.cb-bar .bar-text{
+  position:absolute; right:5px; top:50%; transform:translateY(-50%);
+  font-weight:700; z-index:2;
+  text-shadow:0 0 2px #000;
+}
+@keyframes hpBlink{ 50%{ opacity:.6; } }
+
+.combatant.dead .cb-frame{
+  filter:grayscale(.85) brightness(.4);
+  transform:rotate(2deg);
+}
+.combatant.targetable .cb-frame{
+  border-color:var(--gold);
+  box-shadow:0 0 14px #ffd23dcc, inset 0 0 8px #ffd23d88;
+  animation:tpulse 1s ease-in-out infinite;
+  cursor:pointer;
+}
+@keyframes tpulse{ 50%{ box-shadow:0 0 22px #ffd23dee, inset 0 0 12px #ffd23dcc; } }
+
+/* バトルアニメ（既存の fx-hit などを強化） */
+.combatant.fx-hit .cb-frame{ animation:hitShake .35s; box-shadow:0 0 18px #ff3a3aaa; }
+.combatant.fx-crit .cb-frame{ animation:critShake .4s; box-shadow:0 0 22px #ffd23dee; }
+.combatant.fx-heal .cb-frame{ box-shadow:0 0 18px #5fd06aaa; }
+.combatant.fx-buff .cb-frame{ box-shadow:0 0 18px #5b8cffaa; }
+@keyframes hitShake{
+  0%,100%{ transform:translateX(0); }
+  20%{ transform:translateX(-8px) rotate(-1deg); }
+  40%{ transform:translateX(8px) rotate(1deg); }
+  60%{ transform:translateX(-6px); }
+  80%{ transform:translateX(4px); }
+}
+@keyframes critShake{
+  0%,100%{ transform:scale(1); }
+  20%{ transform:scale(1.08) rotate(-2deg); }
+  40%{ transform:scale(.94) rotate(2deg); }
+  60%{ transform:scale(1.06); }
+  80%{ transform:scale(.98); }
+}
+
+/* 旧 .cb-name 等が他で参照されている場合の互換 */
+.cb-name{ font-size:11.5px; font-weight:700; }
 .cb-hpbar{ height:7px; background:#0009; border-radius:4px; overflow:hidden; margin:4px 0 2px; }
 .cb-hpbar>span{ display:block; height:100%; background:linear-gradient(90deg,#3fbf5a,#7fe089);
   border-radius:4px; transition:width .3s ease; }
-.combatant.enemy .cb-hpbar>span{ background:linear-gradient(90deg,#e05a5a,#ff9a6b); }
 .cb-nums{ font-size:10.5px; color:var(--sub); }
-.cb-nums .mp{ color:#7fb3ff; }
+.cbuff{ font-size:10px; }
 
 .bt-log{ background:#0006; border:1px solid var(--line); border-radius:10px;
   padding:8px 10px; font-size:12.5px; min-height:62px; line-height:1.55; }
