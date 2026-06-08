@@ -815,51 +815,79 @@ const UI = (() => {
   }
 
   async function runRound(actions) {
-    const res = Battle.resolveRound(actions && actions.length ? actions : null);
-    await animateSteps(res.steps);
-    afterRound(res.result);
+    try {
+      const res = Battle.resolveRound(actions && actions.length ? actions : null);
+      await animateSteps(res.steps || []);
+      afterRound(res.result);
+    } catch (err) {
+      console.error('[runRound] error:', err);
+      bs.animating = false;
+      // 致命エラー: トースト＋安全に町へ復帰できるボタンを出す
+      try { toast('戦闘でエラー: 町に戻ります', 'err', 3000); } catch (e) {}
+      setTimeout(() => {
+        try { bs.ended = true; show('town'); } catch (e) {}
+      }, 1500);
+    }
   }
   function autoResolveRound() {
     if (bs.ended) return;
     runRound(null);
   }
 
-  async function animateSteps(steps) {
-    bs.animating = true;
-    if (bs.use3d) Scene3D.setTargetMode(null);
-    refresh();
-    for (const st of steps) {
+  // 個々のステップ処理を安全に（1つ失敗しても全体は止まらない）
+  function safeAnimateStep(st) {
+    try {
       if (st.actorUid != null && st.mpAfter != null) bs.dispMP[st.actorUid] = st.mpAfter;
       if (st.targetUid != null && st.hpAfter != null) bs.dispHP[st.targetUid] = st.hpAfter;
       pushLog(st.text);
-      if (bs.use3d) {
-        if (st.actorUid != null && st.mpAfter != null) Scene3D.act(st.actorUid);
-        if (st.fx === 'hit' || st.fx === 'crit') {
-          // 魔法スキルは属性別、物理は通常の赤バースト
-          const magicEl = st.skillType === 'magic' ? st.el : null;
-          Scene3D.hit(st.targetUid, st.fx, magicEl, st.attackerUid);
-          if (typeof SoundFX !== 'undefined') {
-            if (st.skillType === 'magic' && st.el) SoundFX.sfx('spell', { el: st.el });
-            else SoundFX.sfx(st.fx === 'crit' ? 'crit' : 'hit');
+      if (bs.use3d && Scene3D.active) {
+        try {
+          if (st.actorUid != null && st.mpAfter != null) Scene3D.act(st.actorUid);
+          if (st.fx === 'hit' || st.fx === 'crit') {
+            const magicEl = st.skillType === 'magic' ? st.el : null;
+            Scene3D.hit(st.targetUid, st.fx, magicEl, st.attackerUid);
           }
-        }
-        else if (st.fx === 'heal') { Scene3D.heal(st.targetUid);
-          if (typeof SoundFX !== 'undefined') SoundFX.sfx('heal'); }
-        else if (st.fx === 'buff') { Scene3D.buff(st.targetUid);
-          if (typeof SoundFX !== 'undefined') SoundFX.sfx('buff'); }
-        Scene3D.updateBars(bs.dispHP, bs.dispMP);
-        if (st.amount != null && st.targetUid != null) {
-          Scene3D.pop(st.targetUid, (st.fx === 'heal' ? '+' : '') + st.amount,
-            st.fx === 'heal' ? 'heal' : st.fx === 'crit' ? 'crit' : 'dmg');
-        }
+          else if (st.fx === 'heal') Scene3D.heal(st.targetUid);
+          else if (st.fx === 'buff') Scene3D.buff(st.targetUid);
+          Scene3D.updateBars(bs.dispHP, bs.dispMP);
+          if (st.amount != null && st.targetUid != null) {
+            Scene3D.pop(st.targetUid, (st.fx === 'heal' ? '+' : '') + st.amount,
+              st.fx === 'heal' ? 'heal' : st.fx === 'crit' ? 'crit' : 'dmg');
+          }
+        } catch (e) { console.warn('[Scene3D step]', e); }
         renderBottom();
       } else {
         render2D();
         flashStep(st);
       }
-      await sleep(bs.auto ? 360 : 640);
+      // 音は失敗してもゲームを止めない
+      if (typeof SoundFX !== 'undefined') {
+        try {
+          if (st.fx === 'hit' || st.fx === 'crit') {
+            if (st.skillType === 'magic' && st.el) SoundFX.sfx('spell', { el: st.el });
+            else SoundFX.sfx(st.fx === 'crit' ? 'crit' : 'hit');
+          } else if (st.fx === 'heal') SoundFX.sfx('heal');
+          else if (st.fx === 'buff') SoundFX.sfx('buff');
+        } catch (e) { /* noop */ }
+      }
+    } catch (e) {
+      console.warn('[step]', e);
     }
-    bs.animating = false;
+  }
+
+  async function animateSteps(steps) {
+    bs.animating = true;
+    try {
+      if (bs.use3d) Scene3D.setTargetMode(null);
+      refresh();
+      for (const st of (steps || [])) {
+        safeAnimateStep(st);
+        await sleep(bs.auto ? 360 : 640);
+      }
+    } finally {
+      // どんなエラーでも animating フラグは必ず解除
+      bs.animating = false;
+    }
   }
 
   function flashStep(st) {
