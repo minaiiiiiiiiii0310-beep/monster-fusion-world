@@ -141,8 +141,8 @@ const SnapLocations = (() => {
     market: {
       id: 'market',
       name: '🛒 闇市場',
-      desc: '配置スロット 5枚（通常4枚）',
-      maxSlots: 5,
+      desc: '配置スロット 4枚（通常3枚）',
+      maxSlots: 4,
     },
     sanctuary: {
       id: 'sanctuary',
@@ -150,7 +150,7 @@ const SnapLocations = (() => {
       desc: 'プレイ時にカードがコピー（+1枚）',
       onPlace(card, lane, side, game) {
         const slots = game.board[lane][side];
-        if (slots.length < (this.maxSlots || 4)) {
+        if (slots.length < (this.maxSlots || 3)) {
           const copy = { ...card, _isCopy: true };
           slots.push(copy);
         }
@@ -160,7 +160,7 @@ const SnapLocations = (() => {
       id: 'graveyard',
       name: '🪦 墓場',
       desc: '破壊されたカードがランダムに復活',
-      maxSlots: 4,
+      maxSlots: 3,
     },
   };
 

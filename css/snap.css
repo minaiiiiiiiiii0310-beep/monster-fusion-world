@@ -44,62 +44,95 @@
 .snap-snap-btn:active { transform: scale(.95); }
 @keyframes snapPulse { 50% { box-shadow: 0 0 18px #ffd23dcc; } }
 
-/* ===== 盤面 ===== */
+/* ===== 盤面（縦積みレーン） ===== */
 .snap-board {
   display: flex;
-  flex-direction: row;
-  gap: 4px;
+  flex-direction: column;
+  gap: 6px;
   flex: 1;
 }
-.snap-lane {
-  flex: 1;
+.lane-strip {
   background: linear-gradient(180deg, #1d2438 0%, #141828 100%);
   border: 1px solid var(--line);
   border-radius: 12px;
-  padding: 4px;
+  padding: 4px 6px 6px;
   display: flex;
   flex-direction: column;
   gap: 4px;
-  min-width: 0;
 }
-.snap-lane-head {
+.lane-bar {
   display: flex;
-  justify-content: space-between;
   align-items: center;
-  font-size: 10px;
-  color: var(--sub);
+  gap: 8px;
+  font-size: 11px;
+  padding: 2px 0;
 }
-.snap-lane-no { font-weight: 700; }
-.snap-pow {
-  background: #0008; padding: 2px 8px; border-radius: 8px;
-  font-size: 13px; font-weight: 900;
+.lane-no {
+  font-weight: 900;
+  color: var(--gold);
+  background: #0008;
+  padding: 2px 6px;
+  border-radius: 6px;
+  font-size: 11px;
+  min-width: 26px;
+  text-align: center;
 }
-.snap-pow.lead {
-  background: var(--gold); color: #0c0f17;
+.lane-loc {
+  flex: 1;
+  text-align: center;
+  font-size: 11px;
+  color: var(--text);
+  background: #0a0e1d;
+  border: 1px dashed var(--line);
+  border-radius: 6px;
+  padding: 2px 6px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.lane-loc-name { font-weight: 700; margin-right: 4px; }
+.lane-loc small { color: var(--sub); font-size: 9.5px; }
+.lane-loc.dim { opacity: 0.4; }
+.lane-pow {
+  background: #0008;
+  padding: 2px 8px;
+  border-radius: 8px;
+  font-size: 12px;
+  font-weight: 900;
+  min-width: 44px;
+  text-align: center;
+}
+.lane-pow.ally-lead {
+  background: linear-gradient(180deg, #ffd23d, #b07e10);
+  color: #0c0f17;
   box-shadow: 0 0 8px #ffd23dcc;
 }
-.snap-loc {
-  background: #0a0e1d; border: 1px dashed var(--line);
-  border-radius: 8px; padding: 4px 6px;
-  font-size: 9.5px; line-height: 1.25; text-align: center;
-  color: var(--text);
+.lane-pow.enemy-lead {
+  background: linear-gradient(180deg, #ff6b6b, #aa2020);
+  color: white;
+  box-shadow: 0 0 8px #ff6b6bcc;
 }
-.snap-loc.dim { opacity: 0.4; }
-.snap-loc small { color: var(--sub); font-size: 8.5px; }
 
-.snap-row {
+.lane-rows {
   display: flex;
-  gap: 3px;
-  min-height: 78px;
+  flex-direction: column;
+  gap: 4px;
+}
+.lane-row {
+  display: flex;
+  gap: 4px;
+  min-height: 92px;
   align-items: stretch;
 }
-.snap-row.enemy { flex-direction: row-reverse; }
-.snap-row.ally { }
+.lane-row.enemy {
+  flex-direction: row-reverse;
+}
 
+/* スロット */
 .snap-slot {
   flex: 1;
   min-width: 0;
-  min-height: 78px;
+  min-height: 92px;
   display: flex;
   align-items: center;
   justify-content: center;
@@ -109,7 +142,7 @@
   border: 1px dashed #ffffff22;
   border-radius: 8px;
   color: var(--sub);
-  font-size: 18px;
+  font-size: 20px;
 }
 .snap-slot.empty.target {
   border-color: var(--gold);
@@ -119,21 +152,22 @@
 }
 @keyframes targetPulse { 50% { background: #ffd23d44; } }
 
-/* ===== カード ===== */
+/* ===== カード（盤面） ===== */
 .snap-card {
   flex: 1; min-width: 0;
   background: linear-gradient(150deg, #3a4a6e 0%, #1d2438 100%);
   border: 2px solid #fff8;
-  border-radius: 8px;
-  padding: 2px;
+  border-radius: 10px;
+  padding: 3px;
   display: flex; flex-direction: column;
   position: relative;
-  font-size: 9px;
+  font-size: 10px;
   color: #fff;
   box-shadow: 0 2px 6px #0008, inset 0 1px 0 #ffffff44;
   cursor: pointer;
-  transition: transform .15s ease;
+  transition: transform .15s ease, box-shadow .15s ease;
 }
+.lane-card { font-size: 10.5px; }
 .snap-card:active { transform: scale(.96); }
 .snap-card.pending {
   border-color: var(--gold);
@@ -179,23 +213,53 @@
   display: flex; align-items: center; justify-content: center;
   margin: 8px 1px 2px;
   overflow: hidden;
-  min-height: 40px;
+  min-height: 44px;
 }
+.lane-card .snap-card-art-wrap { min-height: 48px; }
 .snap-card-art {
   width: 100%; height: 100%; object-fit: contain;
 }
 .snap-card-art-emoji {
-  font-size: 28px;
+  font-size: 30px;
 }
+.lane-card .snap-card-art-emoji { font-size: 34px; }
 .snap-card-name {
   text-align: center;
-  font-size: 8.5px;
+  font-size: 9px;
   font-weight: 700;
   padding: 1px 2px;
   text-shadow: 0 1px 0 #0008;
   overflow: hidden;
   white-space: nowrap;
   text-overflow: ellipsis;
+}
+.lane-card .snap-card-name { font-size: 10px; }
+
+/* HP バー */
+.snap-card-hp {
+  position: relative;
+  height: 8px;
+  background: #0006;
+  border-radius: 4px;
+  margin: 1px 1px 0;
+  overflow: hidden;
+}
+.snap-card-hp .hp-bar {
+  position: absolute; left: 0; top: 0; bottom: 0;
+  background: linear-gradient(180deg, #56d364, #2a8a3a);
+  transition: width .4s ease;
+}
+.snap-card-hp .hp-bar.mid { background: linear-gradient(180deg, #ffd23d, #b07e10); }
+.snap-card-hp .hp-bar.low { background: linear-gradient(180deg, #ff6b6b, #aa2020); }
+.snap-card-hp .hp-text {
+  position: absolute; left: 0; right: 0; top: 50%;
+  transform: translateY(-50%);
+  text-align: center;
+  font-size: 8px;
+  font-weight: 700;
+  color: #fff;
+  text-shadow: 0 1px 1px #000;
+  line-height: 1;
 }
 
 /* ===== 手札 ===== */
@@ -347,16 +411,112 @@
   .snap-info { font-size: 11px; }
   .snap-energy b { font-size: 14px; }
   .snap-snap-btn { padding: 4px 10px; font-size: 12px; }
-  .snap-board { gap: 2px; }
-  .snap-lane { padding: 2px; gap: 2px; }
-  .snap-row { min-height: 60px; }
-  .snap-slot { min-height: 60px; }
-  .snap-card-art-emoji { font-size: 22px; }
+  .snap-board { flex-direction: row; gap: 4px; }
+  .lane-strip { flex: 1; padding: 2px 4px 4px; gap: 2px; }
+  .lane-bar { font-size: 10px; gap: 4px; padding: 0; }
+  .lane-loc { font-size: 9.5px; }
+  .lane-loc small { font-size: 8.5px; }
+  .lane-pow { font-size: 10px; min-width: 36px; padding: 1px 4px; }
+  .lane-rows { flex-direction: column; gap: 2px; }
+  .lane-row { min-height: 70px; gap: 2px; }
+  .snap-slot { min-height: 70px; }
+  .lane-card .snap-card-art-emoji { font-size: 24px; }
+  .lane-card .snap-card-art-wrap { min-height: 36px; }
   .snap-card.in-hand { flex: 0 0 70px; min-width: 70px; height: 92px; }
   .snap-card.in-hand .snap-card-art-emoji { font-size: 28px; }
   .snap-hand { min-height: 100px; }
   .snap-log { max-height: 40px; min-height: 24px; }
   .snap-end-btn { padding: 8px 20px; font-size: 13px; min-width: 140px; }
+  .snap-banner.turn { padding: 12px 28px; font-size: 22px; }
+  .snap-banner.snap { padding: 12px 28px; font-size: 18px; }
+}
+
+/* ===== アニメーション ===== */
+@keyframes cardEnter {
+  0%   { opacity: 0; transform: translateY(-20px) scale(.7); }
+  60%  { opacity: 1; transform: translateY(4px) scale(1.05); }
+  100% { opacity: 1; transform: none; }
+}
+@keyframes cardEnterFromBottom {
+  0%   { opacity: 0; transform: translateY(20px) scale(.7); }
+  60%  { opacity: 1; transform: translateY(-4px) scale(1.05); }
+  100% { opacity: 1; transform: none; }
+}
+.lane-card.just-revealed {
+  animation: cardEnter .5s ease-out;
+}
+.lane-row.ally .lane-card.just-revealed {
+  animation: cardEnterFromBottom .5s ease-out;
+}
+
+/* HP 減少時の フラッシュ */
+@keyframes hurtFlash {
+  0%   { box-shadow: 0 0 0 0 #ff0000ff; filter: brightness(1.4); }
+  50%  { box-shadow: 0 0 16px 4px #ff0000aa; filter: brightness(1.1); }
+  100% { box-shadow: 0 2px 6px #0008; filter: brightness(1); }
+}
+.lane-card.hurt {
+  animation: hurtFlash .55s ease-out;
+}
+
+/* バトル発生時の 全体フラッシュ */
+.battle-flash::after {
+  content: '';
+  position: fixed;
+  inset: 0;
+  background: radial-gradient(circle at center, #ff444466 0%, transparent 70%);
+  pointer-events: none;
+  z-index: 9998;
+  animation: battleFlash .4s ease-out;
+}
+@keyframes battleFlash {
+  0%   { opacity: 0; }
+  40%  { opacity: 1; }
+  100% { opacity: 0; }
+}
+
+/* ターン・Snap バナー */
+.snap-banner {
+  position: fixed;
+  left: 50%;
+  top: 40%;
+  transform: translate(-50%, -50%) scale(.5);
+  opacity: 0;
+  z-index: 10000;
+  pointer-events: none;
+  transition: opacity .35s ease, transform .35s ease;
+  text-align: center;
+}
+.snap-banner.show {
+  opacity: 1;
+  transform: translate(-50%, -50%) scale(1);
+}
+.snap-banner.hide {
+  opacity: 0;
+  transform: translate(-50%, -50%) scale(1.4);
+}
+.snap-banner.turn {
+  background: linear-gradient(180deg, #ffd23d, #b07e10);
+  color: #0c0f17;
+  padding: 18px 40px;
+  border-radius: 24px;
+  font-size: 28px;
+  font-weight: 900;
+  border: 4px solid #fff;
+  box-shadow: 0 0 40px #ffd23dee;
+}
+.snap-banner.turn .banner-num { font-size: 36px; margin-right: 8px; }
+.snap-banner.turn small { font-size: 16px; opacity: .8; }
+.snap-banner.snap {
+  background: linear-gradient(180deg, #ff5a5a, #c43030);
+  color: white;
+  padding: 18px 40px;
+  border-radius: 24px;
+  font-size: 26px;
+  font-weight: 900;
+  border: 4px solid #ffd23d;
+  box-shadow: 0 0 40px #ffd23dee;
+  letter-spacing: 0.05em;
 }
 
 /* ===== ベット倍率表示 / 撤退ボタン ===== */

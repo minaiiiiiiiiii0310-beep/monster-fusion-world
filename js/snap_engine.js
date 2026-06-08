@@ -6,9 +6,12 @@
  *  ・能力評価: onReveal → ongoing(modifyPow) → endOfTurn → onDestroyed
  * =======================================================================*/
 const SnapEngine = (() => {
-  const MAX_TURN = 6;
-  const HAND_MAX = 7;
-  const SLOTS_PER_LANE = 4;
+  const MAX_TURN = 8;
+  const HAND_MAX = 8;
+  const INITIAL_HAND = 5;
+  const SLOTS_PER_LANE = 3;
+  const SWAP_FEE = 1;        // ホットスワップの 追加 エネルギー
+  const HP_PER_POW = 2;      // 各カードの HP = pow * HP_PER_POW
 
   /* ===== 試合状態 =====
    * {
@@ -46,11 +49,14 @@ const SnapEngine = (() => {
       bet: 1,                              // ベット倍率
       snapped: { ally: false, enemy: false },  // 各陣営の Snap宣言済みフラグ
       retreated: false,                     // プレイヤーがおりたか
+      extraCost: { ally: 0, enemy: 0 },     // ホットスワップ等の 追加エネルギー消費
+      justRevealed: [],                     // 直前ターンに 公開された カード uid（アニメ用）
+      lastTurnLog: [],                      // 直前ターンの ハイライト
     };
-    // 初期手札3枚
-    drawN('ally', 3);
-    drawN('enemy', 3);
-    // ターン1の開始時に最初のロケーションを公開
+    // 初期手札 5枚
+    drawN('ally', INITIAL_HAND);
+    drawN('enemy', INITIAL_HAND);
+    // ターン1の開始時に 最初のロケーションを公開
     G.board[0].locationRevealed = true;
     return G;
   }
@@ -69,7 +75,15 @@ const SnapEngine = (() => {
       const next = G.deck[side].shift();
       if (!next) break;
       const card = SnapData.getCard(next);
-      if (card) G.hand[side].push({ ...card, uid: nextUid() });
+      if (card) {
+        const maxHp = Math.max(2, (card.pow || 1) * HP_PER_POW);
+        G.hand[side].push({
+          ...card,
+          uid: nextUid(),
+          maxHp,
+          hp: maxHp,
+        });
+      }
     }
   }
 
@@ -86,8 +100,8 @@ const SnapEngine = (() => {
     if (idx < 0) return { ok: false, msg: '手札にカードが ない' };
     const card = G.hand[side][idx];
 
-    // エネルギーチェック（pending 含む）
-    const usedEnergy = G.pending[side].reduce((s, p) => s + p.card.cost, 0);
+    // エネルギーチェック（pending + extraCost 含む）
+    const usedEnergy = G.pending[side].reduce((s, p) => s + p.card.cost, 0) + (G.extraCost[side] || 0);
     if (usedEnergy + card.cost > G.energy[side]) {
       return { ok: false, msg: 'エネルギー不足' };
     }
@@ -119,51 +133,137 @@ const SnapEngine = (() => {
     return true;
   }
 
-  /* ----- ターン終了: 両者の pending を同時公開・能力解決・次ターン ----- */
+  /* ----- ホットスワップ -----
+   * すでに公開済みの 自分のカードを 手札に 戻す。コスト = SWAP_FEE。
+   * 戻したカードは 全 HP 回復。
+   */
+  function withdraw(side, revealedUid) {
+    if (!G || G.over) return { ok: false };
+    let target = null, targetLane = -1, targetIdx = -1;
+    G.board.forEach((slot, i) => {
+      const idx = slot[side].findIndex(c => c.uid === revealedUid);
+      if (idx >= 0) { target = slot[side][idx]; targetLane = i; targetIdx = idx; }
+    });
+    if (!target) return { ok: false, msg: '対象カードがない' };
+    if (G.hand[side].length >= HAND_MAX) return { ok: false, msg: '手札がいっぱい' };
+    const usedEnergy = G.pending[side].reduce((s, p) => s + p.card.cost, 0) + (G.extraCost[side] || 0);
+    if (usedEnergy + SWAP_FEE > G.energy[side]) return { ok: false, msg: 'エネルギー不足' };
+    // 撤収
+    G.board[targetLane][side].splice(targetIdx, 1);
+    target.hp = target.maxHp;   // 戻すと回復
+    G.hand[side].push(target);
+    G.extraCost[side] = (G.extraCost[side] || 0) + SWAP_FEE;
+    G.log.push(`${side === 'ally' ? '★' : '◆'} ${target.name} を回収（-${SWAP_FEE}⚡）`);
+    return { ok: true };
+  }
+
+  /* ----- ターン終了: 両者の pending を同時公開・能力解決・バトル・次ターン ----- */
   function endTurn() {
     if (!G || G.over) return G;
+    G.lastTurnLog = [];
+
     // 1) pending を盤面に確定（両側）
     const revealed = { ally: [], enemy: [] };
-    ['enemy', 'ally'].forEach(side => {   // 敵→味方の順で公開（マーベルスナップは Snap宣言者順だが、MVPでは敵先）
+    const justUids = [];
+    ['enemy', 'ally'].forEach(side => {
       G.pending[side].forEach(p => {
         G.board[p.lane][side].push(p.card);
         revealed[side].push({ card: p.card, lane: p.lane });
+        justUids.push(p.card.uid);
         G.log.push(`${side === 'ally' ? '★' : '◆'} ${p.card.name} がレーン${p.lane + 1}に登場`);
       });
     });
+    G.justRevealed = justUids;
     G.pending = { ally: [], enemy: [] };
+    G.extraCost = { ally: 0, enemy: 0 };   // 翌ターンに 持ち越さない
 
     // 2) onReveal を順番に発動（敵→味方）
     revealed.enemy.forEach(r => triggerOnReveal(r.card, r.lane, 'enemy'));
     revealed.ally.forEach(r => triggerOnReveal(r.card, r.lane, 'ally'));
 
-    // 3) ロケーションの onPlace（reveal時、配置後）
+    // 3) ロケーションの onPlace
     revealed.enemy.forEach(r => triggerLocationOnPlace(r.card, r.lane, 'enemy'));
     revealed.ally.forEach(r => triggerLocationOnPlace(r.card, r.lane, 'ally'));
 
-    // 4) End of turn 能力（盤上の全カード）
+    // 4) ★ バトルフェーズ：両陣営が衝突しているレーンで HP ダメージ交換
+    runBattlePhase();
+
+    // 5) End of turn 能力（盤上の全カード）
     forEachCard((card, lane, side) => triggerEndOfTurn(card, lane, side));
 
-    // 5) ロケーションの onTurnEnd
+    // 6) ロケーションの onTurnEnd
     G.board.forEach((lane, idx) => {
       if (lane.location.onTurnEnd) lane.location.onTurnEnd(idx, null, api());
     });
 
-    // 6) 次ターン or ゲーム終了
+    // 7) 次ターン or ゲーム終了
     if (G.turn >= MAX_TURN) {
       finishGame();
     } else {
       G.turn += 1;
-      G.energy.ally = G.turn;
-      G.energy.enemy = G.turn;
-      // 次のロケーション公開
-      if (G.turn - 1 < G.board.length) {
-        G.board[G.turn - 1].locationRevealed = true;
-      }
+      G.energy.ally = Math.min(8, G.turn);
+      G.energy.enemy = Math.min(8, G.turn);
+      // 次のロケーション公開（ターン2でレーン2、ターン3でレーン3）
+      if (G.turn === 2) G.board[1].locationRevealed = true;
+      if (G.turn === 3) G.board[2].locationRevealed = true;
       drawN('ally', 1);
       drawN('enemy', 1);
     }
     return G;
+  }
+
+  /* ----- バトルフェーズ -----
+   * 両陣営の カードが いる レーンで、各カードは 相手の最強カードの POW の
+   * 半分の ダメージを 受ける（最低1）。
+   * シールド能力で 半減、taunt が いれば 集中砲火。
+   */
+  function runBattlePhase() {
+    G.board.forEach((slot, laneIdx) => {
+      if (!slot.ally.length || !slot.enemy.length) return;
+      // 最強カードを 双方の "代表" として 互いを 攻撃
+      const allyChamp = slot.ally.reduce((a, b) =>
+        effectivePow(a, laneIdx, 'ally') >= effectivePow(b, laneIdx, 'ally') ? a : b);
+      const enemyChamp = slot.enemy.reduce((a, b) =>
+        effectivePow(a, laneIdx, 'enemy') >= effectivePow(b, laneIdx, 'enemy') ? a : b);
+      const allyPow = effectivePow(allyChamp, laneIdx, 'ally');
+      const enemyPow = effectivePow(enemyChamp, laneIdx, 'enemy');
+      const dmgToAlly = Math.max(1, Math.ceil(enemyPow / 2));
+      const dmgToEnemy = Math.max(1, Math.ceil(allyPow / 2));
+      // 全カードに ダメージ。攻撃側は それぞれの champ
+      slot.ally.forEach(c => {
+        applyDamage(c, dmgToAlly, enemyChamp);
+        // double_strike: 2回ダメージ
+        if (enemyChamp.ability === 'double_strike') applyDamage(c, dmgToAlly, enemyChamp);
+      });
+      slot.enemy.forEach(c => {
+        applyDamage(c, dmgToEnemy, allyChamp);
+        if (allyChamp.ability === 'double_strike') applyDamage(c, dmgToEnemy, allyChamp);
+      });
+      G.log.push(`⚔ レーン${laneIdx + 1}: 戦闘！ 味方-${dmgToAlly} / 敵-${dmgToEnemy}`);
+    });
+    // 0 HP のカードを 一括破壊
+    const toDestroy = [];
+    forEachCard((card, lane, side) => {
+      if (card.hp <= 0 && !card._dying) {
+        card._dying = true;
+        toDestroy.push({ card, lane, side });
+      }
+    });
+    toDestroy.forEach(d => destroyCard(d.card, d.lane, d.side));
+  }
+
+  function applyDamage(card, dmg, attacker) {
+    let reduced = dmg;
+    if (card.ability === 'shield' && (!attacker || attacker.ability !== 'pierce')) {
+      reduced = Math.ceil(reduced / 2);
+    }
+    // pierce: 追加 +2 ダメージ
+    if (attacker && attacker.ability === 'pierce') reduced += 2;
+    card.hp = Math.max(0, card.hp - reduced);
+    // lifesteal: 攻撃側がHP回復
+    if (attacker && attacker.ability === 'lifesteal') {
+      attacker.hp = Math.min(attacker.maxHp || attacker.pow * 2, attacker.hp + Math.ceil(reduced / 2));
+    }
   }
 
   function forEachCard(fn) {
@@ -268,14 +368,112 @@ const SnapEngine = (() => {
       }
       case 'growth':
       case 'regen':
-      case 'drain': {
+      case 'drain':
+      case 'heal_self':
+      case 'heal_lane': {
         if (id === 'growth') {
           card.pow += 1;
         } else if (id === 'regen') {
           slot[side].forEach(c => { if (c.uid !== card.uid) c.pow += 1; });
         } else if (id === 'drain') {
           slot[opp].forEach(c => c.pow = Math.max(0, c.pow - 1));
+        } else if (id === 'heal_self') {
+          card.hp = card.maxHp;
+        } else if (id === 'heal_lane') {
+          slot[side].forEach(c => { c.hp = Math.min(c.maxHp, c.hp + 3); });
         }
+        break;
+      }
+      // ----- 新 onReveal -----
+      case 'summon': {
+        // 同レーンに 2POW/4HP のトークンを 召喚
+        const maxSlots = slot.location.maxSlots || SLOTS_PER_LANE;
+        if (slot[side].length < maxSlots) {
+          slot[side].push({
+            id: 'token', name: 'トークン', emoji: '✨',
+            cost: 0, pow: 2, maxHp: 4, hp: 4,
+            el: card.el || 'none', ability: 'none', abilityType: 'none',
+            uid: nextUid(), _token: true,
+          });
+          G.log.push(`${card.name}: トークンを召喚`);
+        }
+        break;
+      }
+      case 'draw_2': {
+        drawN(side, 2);
+        G.log.push(`${card.name}: 2枚ドロー`);
+        break;
+      }
+      case 'bounce_enemy': {
+        // 同レーンの 最弱敵を 手札に戻す（敵の手札に）
+        if (slot[opp].length) {
+          let weakest = slot[opp][0];
+          slot[opp].forEach(c => { if (c.pow < weakest.pow) weakest = c; });
+          slot[opp] = slot[opp].filter(c => c.uid !== weakest.uid);
+          if (G.hand[opp].length < HAND_MAX) {
+            weakest.hp = weakest.maxHp;
+            G.hand[opp].push(weakest);
+          }
+          G.log.push(`${card.name}: ${weakest.name} を手札に戻す`);
+        }
+        break;
+      }
+      case 'copy_strongest': {
+        // 同レーン最強の味方の POW を コピー（自分以外）
+        let strongest = null;
+        slot[side].forEach(c => {
+          if (c.uid === card.uid) return;
+          if (!strongest || c.pow > strongest.pow) strongest = c;
+        });
+        if (strongest) {
+          card.pow = strongest.pow;
+          G.log.push(`${card.name}: ${strongest.name} の力 ${strongest.pow} をコピー`);
+        }
+        break;
+      }
+      case 'swap_lane': {
+        // 同レーンの 自分以外の味方と 位置交換は 視覚的意味のみだが、
+        // ロケーション効果が 切り替わる ケースで 戦略性が出る
+        const others = slot[side].filter(c => c.uid !== card.uid);
+        if (others.length) {
+          // 他レーンへの シャッフル
+          let best = lane, bestDiff = totals(lane).enemy - totals(lane).ally;
+          if (side === 'enemy') bestDiff = -bestDiff;
+          G.board.forEach((l, i) => {
+            if (i === lane) return;
+            const maxSlots = l.location.maxSlots || SLOTS_PER_LANE;
+            if (l[side].length >= maxSlots) return;
+            let diff = totals(i).enemy - totals(i).ally;
+            if (side === 'enemy') diff = -diff;
+            if (diff > bestDiff) { bestDiff = diff; best = i; }
+          });
+          if (best !== lane) {
+            const idx = slot[side].findIndex(c => c.uid === card.uid);
+            slot[side].splice(idx, 1);
+            G.board[best][side].push(card);
+            G.log.push(`${card.name}: レーン${best + 1}へワープ`);
+          }
+        }
+        break;
+      }
+      case 'chain_buff': {
+        // 同系統の味方 全レーン +2 POW
+        let cnt = 0;
+        G.board.forEach(l => l[side].forEach(c => {
+          if (c.uid !== card.uid && c.family === card.family) { c.pow += 2; cnt++; }
+        }));
+        if (cnt) G.log.push(`${card.name}: 同系統 ${cnt}体を強化`);
+        break;
+      }
+      case 'elemental_boost': {
+        // 同属性の味方 +2 POW
+        let cnt = 0;
+        G.board.forEach(l => l[side].forEach(c => {
+          if (c.uid !== card.uid && c.el === card.el && card.el !== 'none') {
+            c.pow += 2; cnt++;
+          }
+        }));
+        if (cnt) G.log.push(`${card.name}: 同属性 ${cnt}体を強化`);
         break;
       }
       // ongoing 系は modifyPow で評価
@@ -313,6 +511,11 @@ const SnapEngine = (() => {
       const opp = side === 'ally' ? 'enemy' : 'ally';
       G.board[lane][opp].forEach(c => c.pow = Math.max(0, c.pow - 3));
     }
+    // death_curse: 同レーンの 敵全体 HP -5
+    if (card.ability === 'death_curse') {
+      const opp = side === 'ally' ? 'enemy' : 'ally';
+      G.board[lane][opp].forEach(c => { c.hp = Math.max(0, c.hp - 5); });
+    }
   }
 
   /* ----- POW 計算 -----
@@ -344,6 +547,10 @@ const SnapEngine = (() => {
     // ロケーション補正
     if (slot.location.modifyPow) {
       pow += slot.location.modifyPow(card, lane, side, api());
+    }
+    // berserker: HP半分以下で +3 POW
+    if (card.ability === 'berserker' && card.maxHp && card.hp <= card.maxHp / 2) {
+      pow += 3;
     }
     return Math.max(0, pow);
   }
@@ -450,8 +657,8 @@ const SnapEngine = (() => {
   }
 
   return {
-    MAX_TURN, HAND_MAX, SLOTS_PER_LANE,
-    start, state, play, unplay, endTurn,
+    MAX_TURN, HAND_MAX, INITIAL_HAND, SLOTS_PER_LANE, SWAP_FEE, HP_PER_POW,
+    start, state, play, unplay, withdraw, endTurn,
     declareSnap, retreat, cpuShouldSnap, applyRetreatPenalty,
     effectivePow, totals, destroyCard,
   };

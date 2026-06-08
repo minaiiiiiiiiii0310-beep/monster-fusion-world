@@ -342,6 +342,7 @@ const UI = (() => {
     snapPick: (d) => SnapUI.pickCard(+d.uid),
     snapDrop: (d) => SnapUI.dropOn(+d.lane),
     snapUnplay: (d) => SnapUI.unplayCard(+d.uid),
+    snapWithdraw: (d) => SnapUI.withdrawCard(+d.uid),
     snapEndTurn: () => SnapUI.endTurn(),
     snapSnap: () => SnapUI.snap(),
     snapRetreat: () => SnapUI.retreat(),
