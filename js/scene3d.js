@@ -1709,6 +1709,398 @@ const Scene3D = (() => {
     return g;
   }
 
+  /* ---- 虫系（bug） — 多節体＋触角＋複眼 ---------------------------------- */
+  function buildBugFamily(species, mats, decos) {
+    const col = new THREE.Color(DB.ELEMENTS[species.el].color).getHex();
+    const tier = Math.min(5, species.rank);
+    const g = new THREE.Group();
+    // 3節の硬い甲殻
+    const segs = [
+      { z: 0.6, r: 0.55, c: 1.05 },
+      { z: 0.0, r: 0.6,  c: 1.0 },
+      { z: -0.6, r: 0.5, c: 0.9 },
+    ];
+    segs.forEach((s, i) => {
+      const seg = new THREE.Mesh(new THREE.SphereGeometry(s.r, 18, 18),
+        mat(shade(col, s.c), { flat: false, rough: 0.3, metal: 0.45 }));
+      seg.position.set(0, 0.6, s.z); seg.scale.set(1.1, 0.85, 1.0);
+      g.add(seg); mats.push(seg.material);
+    });
+    // 頭（前）
+    const head = new THREE.Mesh(new THREE.SphereGeometry(0.42, 16, 16),
+      mat(shade(col, 1.1), { flat: false, rough: 0.3, metal: 0.4 }));
+    head.position.set(0, 0.7, 0.95); g.add(head); mats.push(head.material);
+    // 大きな複眼（黒・光沢）
+    [-0.22, 0.22].forEach(sx => {
+      const ce = new THREE.Mesh(new THREE.SphereGeometry(0.22, 16, 16),
+        mat(0x14141c, { flat: false, rough: 0.1, metal: 0.7 }));
+      ce.position.set(sx, 0.78, 1.18); g.add(ce); mats.push(ce.material);
+      // 反射のキラめき
+      const hl = new THREE.Mesh(new THREE.SphereGeometry(0.06, 8, 8),
+        mat(0xffffff, { emissive: 0xffffff, emissiveIntensity: 0.7, outline: false }));
+      hl.position.set(sx + 0.07, 0.88, 1.32); g.add(hl); mats.push(hl.material);
+    });
+    // 顎（小さなマンディブル）
+    [-0.12, 0.12].forEach(sx => {
+      const j = new THREE.Mesh(new THREE.ConeGeometry(0.05, 0.2, 4),
+        mat(mix(col, 0x000000, 0.3)));
+      j.position.set(sx, 0.55, 1.32); j.rotation.x = Math.PI;
+      g.add(j); mats.push(j.material);
+    });
+    // 触角（光るチップ）
+    [-0.15, 0.15].forEach(sx => {
+      const a = new THREE.Mesh(new THREE.CylinderGeometry(0.025, 0.025, 0.55, 5),
+        mat(shade(col, 0.6)));
+      a.position.set(sx, 1.05, 1.15); a.rotation.set(-0.4, 0, sx * 0.4);
+      g.add(a); mats.push(a.material);
+      const tip = new THREE.Mesh(new THREE.SphereGeometry(0.07, 10, 10),
+        mat(mix(col, 0xffffff, 0.5), { emissive: col, emissiveIntensity: 0.6, outline: false }));
+      tip.position.set(sx + sx * 0.3, 1.32, 1.45); g.add(tip); mats.push(tip.material);
+    });
+    // 6本の脚（3節 × 左右）
+    [-1, 1].forEach(s => [0.6, 0.0, -0.55].forEach((sz, i) => {
+      const leg = new THREE.Mesh(new THREE.CylinderGeometry(0.05, 0.05, 0.7, 5),
+        mat(shade(col, 0.55)));
+      leg.position.set(s * 0.55, 0.35, sz); leg.rotation.z = s * 0.9;
+      g.add(leg); mats.push(leg.material);
+      const ft = new THREE.Mesh(new THREE.SphereGeometry(0.06, 8, 8),
+        mat(0x222226));
+      ft.position.set(s * 0.85, 0.06, sz); g.add(ft); mats.push(ft.material);
+    }));
+    // ティア3+: 透明な翅
+    if (tier >= 3) {
+      [-1, 1].forEach(s => {
+        const wing = new THREE.Mesh(new THREE.SphereGeometry(0.5, 14, 8, 0, Math.PI),
+          mat(0xeaf6ff, { flat: false, rough: 0.1, opacity: 0.35, metal: 0.2 }));
+        wing.position.set(s * 0.4, 1.1, -0.1); wing.scale.set(0.4, 0.85, 1.1);
+        wing.rotation.set(0.3, s * 0.4, 0);
+        g.add(wing); mats.push(wing.material);
+      });
+    }
+    // ティア4+: 背中のスパイク
+    if (tier >= 4) {
+      [-0.3, 0, 0.3].forEach(x => {
+        const spike = new THREE.Mesh(new THREE.ConeGeometry(0.1, 0.32, 4),
+          mat(shade(col, 0.5), { metal: 0.5 }));
+        spike.position.set(x, 1.18, 0);
+        g.add(spike); mats.push(spike.material);
+      });
+    }
+    g.userData.top = 1.55;
+    return g;
+  }
+
+  /* ---- 岩ゴーレム系（mat） — 重厚な岩のブロック ------------------------- */
+  function buildStoneGolemFamily(species, mats, decos) {
+    const col = new THREE.Color(DB.ELEMENTS[species.el].color).getHex();
+    const stoneCol = mix(col, 0x6a6058, 0.55);
+    const tier = Math.min(5, species.rank);
+    const g = new THREE.Group();
+    // 胸（巨大な岩の塊）
+    const torso = new THREE.Mesh(new THREE.BoxGeometry(1.3, 1.4, 1.05),
+      mat(stoneCol, { rough: 0.95, metal: 0.15, flat: true }));
+    torso.position.y = 1.35; g.add(torso); mats.push(torso.material);
+    // 胸の発光コア
+    const core = new THREE.Mesh(new THREE.OctahedronGeometry(0.22, 0),
+      mat(col, { flat: true, rough: 0.2, emissive: col, emissiveIntensity: 1.2 }));
+    core.position.set(0, 1.35, 0.55); g.add(core); mats.push(core.material);
+    // 中央のクラック（発光ライン）
+    const crack = new THREE.Mesh(new THREE.BoxGeometry(0.06, 1.0, 0.04),
+      mat(mix(col, 0xffffff, 0.55), { flat: false, emissive: col, emissiveIntensity: 0.85 }));
+    crack.position.set(0, 1.35, 0.54); g.add(crack); mats.push(crack.material);
+    // 肩のロック（大きな丸い石）
+    [-0.85, 0.85].forEach(sx => {
+      const sh = new THREE.Mesh(new THREE.DodecahedronGeometry(0.4, 0),
+        mat(shade(stoneCol, 0.95), { rough: 0.95, flat: true }));
+      sh.position.set(sx, 2.0, 0); sh.rotation.set(Math.random(), Math.random(), Math.random());
+      g.add(sh); mats.push(sh.material);
+    });
+    // 頭（小さなブロック）
+    const head = new THREE.Mesh(new THREE.BoxGeometry(0.65, 0.62, 0.6),
+      mat(shade(stoneCol, 1.05), { rough: 0.95, flat: true }));
+    head.position.y = 2.4; g.add(head); mats.push(head.material);
+    // 顎（下面）
+    const jaw = new THREE.Mesh(new THREE.BoxGeometry(0.55, 0.16, 0.45),
+      mat(shade(stoneCol, 0.85)));
+    jaw.position.set(0, 2.12, 0.05); g.add(jaw); mats.push(jaw.material);
+    // 発光する目
+    [-0.14, 0.14].forEach(sx => {
+      const eye = new THREE.Mesh(new THREE.SphereGeometry(0.075, 12, 12),
+        mat(mix(col, 0xfff8c0, 0.5), { emissive: col, emissiveIntensity: 1.4, outline: false }));
+      eye.position.set(sx, 2.42, 0.31); g.add(eye); mats.push(eye.material);
+    });
+    // 太い腕（岩のブロック）
+    [-1, 1].forEach(s => {
+      const arm = new THREE.Mesh(new THREE.BoxGeometry(0.4, 1.15, 0.42),
+        mat(shade(stoneCol, 0.88), { rough: 0.95, flat: true }));
+      arm.position.set(s * 0.9, 1.3, 0); g.add(arm); mats.push(arm.material);
+      // 拳（巨大）
+      const fist = new THREE.Mesh(new THREE.DodecahedronGeometry(0.32, 0),
+        mat(shade(stoneCol, 0.75), { rough: 0.95, flat: true }));
+      fist.position.set(s * 0.9, 0.65, 0); g.add(fist); mats.push(fist.material);
+      // 拳のクリスタル装飾
+      if (tier >= 3) {
+        const cs = new THREE.Mesh(new THREE.OctahedronGeometry(0.11, 0),
+          mat(col, { flat: true, emissive: col, emissiveIntensity: 0.9 }));
+        cs.position.set(s * 1.05, 0.7, 0.15); g.add(cs); mats.push(cs.material);
+      }
+    });
+    // 太い脚
+    [-0.35, 0.35].forEach(sx => {
+      const leg = new THREE.Mesh(new THREE.BoxGeometry(0.45, 0.65, 0.45),
+        mat(shade(stoneCol, 0.78), { rough: 0.95, flat: true }));
+      leg.position.set(sx, 0.32, 0); g.add(leg); mats.push(leg.material);
+    });
+    // ティア4+: 背中の結晶
+    if (tier >= 4) {
+      [-0.2, 0.2].forEach((sx, i) => {
+        const c = new THREE.Mesh(new THREE.OctahedronGeometry(0.22, 0),
+          mat(col, { flat: true, emissive: col, emissiveIntensity: 0.9 }));
+        c.position.set(sx, 1.85, -0.55); c.rotation.set(0.5, 0, sx * 0.5);
+        g.add(c); mats.push(c.material);
+      });
+    }
+    g.userData.top = 2.85;
+    return g;
+  }
+
+  /* ---- 水生系（aqu） — 大きな魚＋ヒレ＋ティア5触手 ----------------------- */
+  function buildAquaticFamily(species, mats, decos) {
+    const col = new THREE.Color(DB.ELEMENTS[species.el].color).getHex();
+    const tier = Math.min(5, species.rank);
+    const g = new THREE.Group();
+    // 流線形の本体
+    const body = new THREE.Mesh(new THREE.SphereGeometry(0.85, 22, 18),
+      mat(col, { flat: false, rough: 0.32, metal: 0.18 }));
+    body.scale.set(1.55, 1, 0.95); body.position.y = 1.0;
+    g.add(body); mats.push(body.material);
+    // 腹（明るい・うろこ感）
+    belly(g, 0.78, 0.1, 1.7, 0.7, mix(col, 0xfff8e0, 0.55), mats);
+    // 上の背びれ（縦長三角）
+    const dorsal = new THREE.Mesh(new THREE.ConeGeometry(0.45, 0.85, 4),
+      mat(shade(col, 0.88), { opacity: 0.95, flat: true }));
+    dorsal.position.set(0, 1.75, 0); g.add(dorsal); mats.push(dorsal.material);
+    // 尾びれ（後ろの扇）
+    const tailFin = new THREE.Mesh(new THREE.ConeGeometry(0.65, 0.8, 4),
+      mat(shade(col, 0.85), { opacity: 0.92 }));
+    tailFin.position.set(0, 1.0, -1.35); tailFin.rotation.x = Math.PI / 2;
+    tailFin.scale.set(1, 0.5, 1);
+    g.add(tailFin); mats.push(tailFin.material);
+    // 横の小ヒレ
+    [-1, 1].forEach(s => {
+      const sf = new THREE.Mesh(new THREE.ConeGeometry(0.28, 0.55, 4),
+        mat(shade(col, 0.9), { opacity: 0.9 }));
+      sf.position.set(s * 0.88, 0.85, 0.3); sf.rotation.z = s * 1.1;
+      sf.rotation.x = -0.3;
+      g.add(sf); mats.push(sf.material);
+    });
+    // 大きな目
+    [-0.35, 0.35].forEach(sx => {
+      const w = new THREE.Mesh(new THREE.SphereGeometry(0.18, 16, 16),
+        mat(0xffffff, { flat: false, rough: 0.15 }));
+      w.position.set(sx, 1.12, 0.7); g.add(w); mats.push(w.material);
+      const p = new THREE.Mesh(new THREE.SphereGeometry(0.11, 12, 12),
+        mat(0x14141c, { flat: false }));
+      p.position.set(sx, 1.12, 0.83); g.add(p); mats.push(p.material);
+      const hl = new THREE.Mesh(new THREE.SphereGeometry(0.04, 8, 8),
+        mat(0xffffff, { emissive: 0xffffff, emissiveIntensity: 0.8, outline: false }));
+      hl.position.set(sx + 0.04, 1.18, 0.92); g.add(hl); mats.push(hl.material);
+    });
+    // 口（少し開けて尖った歯）
+    if (tier >= 3) {
+      // 歯
+      [-0.12, -0.04, 0.04, 0.12].forEach(sx => {
+        const tooth = new THREE.Mesh(new THREE.ConeGeometry(0.035, 0.1, 4),
+          mat(0xfff0d4));
+        tooth.position.set(sx, 0.92, 1.32); tooth.rotation.x = Math.PI;
+        g.add(tooth); mats.push(tooth.material);
+      });
+    }
+    // 鰓（gills）
+    [-0.6, 0.6].forEach(sx => [0, 0.13, -0.13].forEach(dy => {
+      const gill = new THREE.Mesh(new THREE.BoxGeometry(0.06, 0.18, 0.04),
+        mat(shade(col, 0.65)));
+      gill.position.set(sx, 1.0 + dy, 0.55); g.add(gill); mats.push(gill.material);
+    }));
+    // ティア5: 触手（クラーケン化）
+    if (tier >= 5) {
+      for (let i = 0; i < 6; i++) {
+        const a = (i / 6) * Math.PI * 2;
+        for (let k = 0; k < 4; k++) {
+          const seg = new THREE.Mesh(new THREE.CylinderGeometry(0.12 - k * 0.018, 0.13 - k * 0.018, 0.28, 8),
+            mat(shade(col, 0.85)));
+          const t = k / 4;
+          seg.position.set(Math.cos(a) * (0.5 + t * 0.4),
+                           0.55 - t * 0.5,
+                           Math.sin(a) * (0.5 + t * 0.4));
+          g.add(seg); mats.push(seg.material);
+        }
+      }
+    }
+    g.userData.top = 2.1;
+    return g;
+  }
+
+  /* ---- 属性神（god_*）— 各属性ごとの神々しい姿 ------------------------- */
+  function buildGodFamily(species, mats, decos) {
+    const el = species.el;
+    const col = new THREE.Color(DB.ELEMENTS[el].color).getHex();
+    let g;
+    // 各属性ごとに違うベースを使い、神々しさを上乗せ
+    switch (el) {
+      case 'fire':
+      case 'light':
+      case 'dark':
+        g = buildDragonFamily(species, mats, decos);
+        break;
+      case 'water':
+        g = buildAquaticFamily(species, mats, decos);
+        break;
+      case 'grass':
+        g = buildPlantFamily(species, mats, decos);
+        break;
+      case 'wind':
+        g = buildBirdFamily(species, mats, decos);
+        break;
+      case 'earth':
+        g = buildStoneGolemFamily(species, mats, decos);
+        break;
+      case 'thunder':
+        g = buildWolfFamily(species, mats, decos);
+        break;
+      default:
+        g = buildSlimeFamily(species, mats, decos);
+    }
+    // 神聖オーラ：背後の大きな光輪
+    const auraCol = mix(col, 0xffffff, 0.4);
+    const aura = new THREE.Mesh(new THREE.RingGeometry(1.0, 1.4, 36),
+      new THREE.MeshBasicMaterial({ color: auraCol, transparent: true, opacity: 0.42, side: THREE.DoubleSide }));
+    aura.position.set(0, g.userData.top * 0.55, -0.4);
+    g.add(aura);
+    decos.push({ obj: aura, kind: 'spin', axis: 'z', speed: 0.4 });
+    // 王冠（金色の細かいスパイク）
+    for (let i = 0; i < 7; i++) {
+      const a = (i / 7) * Math.PI * 2;
+      const sp = new THREE.Mesh(new THREE.ConeGeometry(0.07, 0.32, 4),
+        mat(0xffd23d, { metal: 0.7, rough: 0.2, flat: true, emissive: 0xffaa00, emissiveIntensity: 0.6 }));
+      sp.position.set(Math.cos(a) * 0.42, g.userData.top + 0.15, Math.sin(a) * 0.42);
+      g.add(sp); mats.push(sp.material);
+    }
+    // 周回する3つの大きなオーブ
+    for (let i = 0; i < 3; i++) {
+      const orb = new THREE.Mesh(new THREE.SphereGeometry(0.16, 16, 16),
+        mat(col, { flat: false, emissive: col, emissiveIntensity: 1.3, opacity: 0.92 }));
+      g.add(orb); mats.push(orb.material);
+      decos.push({
+        obj: orb, kind: 'orbit',
+        radius: 1.4, angle: (i / 3) * Math.PI * 2, speed: 0.7,
+        h: g.userData.top * 0.6,
+      });
+    }
+    g.userData.top += 0.25;
+    return g;
+  }
+
+  /* ---- 巨神（titan_*）— god よりさらに巨大かつ装飾 -------------------- */
+  function buildTitanFamily(species, mats, decos) {
+    const g = buildGodFamily(species, mats, decos);
+    const col = new THREE.Color(DB.ELEMENTS[species.el].color).getHex();
+    // 神より一回り大きく
+    g.scale.multiplyScalar(1.18);
+    // 二重の光輪（巨神の象徴）
+    const halo2 = new THREE.Mesh(new THREE.TorusGeometry(0.6, 0.05, 8, 28),
+      mat(0xfff5a8, { flat: false, emissive: 0xffd544, emissiveIntensity: 1.0 }));
+    halo2.position.y = g.userData.top + 0.5;
+    halo2.rotation.x = Math.PI / 2.2;
+    g.add(halo2); mats.push(halo2.material);
+    decos.push({ obj: halo2, kind: 'spin', axis: 'z', speed: 1.5 });
+    // 後ろに6翼（神話の天使的）
+    for (let i = 0; i < 3; i++) {
+      [-1, 1].forEach(s => {
+        const w = new THREE.Mesh(new THREE.SphereGeometry(0.6, 12, 8, 0, Math.PI),
+          mat(0xffffff, { flat: false, rough: 0.4, opacity: 0.85, emissive: col, emissiveIntensity: 0.3 }));
+        w.position.set(s * 0.4, g.userData.top * 0.5 + i * 0.35, -0.55);
+        w.scale.set(0.35, 1.0, 0.8);
+        w.rotation.set(0, s * 0.4, s * 0.18);
+        g.add(w); mats.push(w.material);
+      });
+    }
+    // 王の杖（後ろから前へ突き出す）
+    if (Math.random() > 0.5) { // ランダムだがビルド時固定（実質常時）
+      const staff = new THREE.Mesh(new THREE.CylinderGeometry(0.06, 0.06, 2.4, 8),
+        mat(0xc8a04a, { metal: 0.7, rough: 0.3 }));
+      staff.position.set(0.95, 1.5, 0); staff.rotation.z = 0.15;
+      g.add(staff); mats.push(staff.material);
+      const orb = new THREE.Mesh(new THREE.SphereGeometry(0.22, 16, 16),
+        mat(col, { flat: false, emissive: col, emissiveIntensity: 1.4 }));
+      orb.position.set(1.13, 2.7, 0); g.add(orb); mats.push(orb.material);
+    }
+    return g;
+  }
+
+  /* ---- オリジン — 全属性の融合の究極存在 -------------------------------- */
+  function buildOriginFamily(species, mats, decos) {
+    const g = new THREE.Group();
+    // 中心の白い人型（オーラ）
+    const core = new THREE.Mesh(new THREE.SphereGeometry(0.6, 24, 24),
+      mat(0xffffff, { flat: false, rough: 0.15, emissive: 0xffffff, emissiveIntensity: 0.9 }));
+    core.position.y = 1.4; g.add(core); mats.push(core.material);
+    // 胸の大きなプリズム
+    const prism = new THREE.Mesh(new THREE.OctahedronGeometry(0.45, 0),
+      mat(0xffffff, { flat: true, rough: 0.1, opacity: 0.85,
+        emissive: 0xffffff, emissiveIntensity: 1.5 }));
+    prism.position.y = 1.4; g.add(prism); mats.push(prism.material);
+    decos.push({ obj: prism, kind: 'spin', axis: 'y', speed: 0.5 });
+    // 多重の翼（8枚＝全属性のシンボル）
+    const ELS = ['fire', 'water', 'grass', 'wind', 'earth', 'thunder', 'light', 'dark'];
+    ELS.forEach((el, i) => {
+      const a = (i / ELS.length) * Math.PI * 2;
+      const elc = new THREE.Color(DB.ELEMENTS[el].color).getHex();
+      const wing = new THREE.Mesh(new THREE.SphereGeometry(0.7, 14, 8, 0, Math.PI),
+        mat(elc, { flat: false, rough: 0.4, opacity: 0.55,
+          emissive: elc, emissiveIntensity: 0.7 }));
+      wing.position.set(Math.cos(a) * 0.65, 1.5, Math.sin(a) * 0.65);
+      wing.scale.set(0.35, 1.1, 0.6);
+      wing.rotation.set(0, -a, 0);
+      g.add(wing); mats.push(wing.material);
+    });
+    // 大きな光輪（後ろ）
+    const halo = new THREE.Mesh(new THREE.RingGeometry(1.1, 1.5, 48),
+      new THREE.MeshBasicMaterial({ color: 0xffffff, transparent: true, opacity: 0.6, side: THREE.DoubleSide }));
+    halo.position.set(0, 1.6, -0.5); halo.rotation.x = -0.3;
+    g.add(halo);
+    decos.push({ obj: halo, kind: 'spin', axis: 'z', speed: 0.5 });
+    // 全属性の周回オーブ
+    ELS.forEach((el, i) => {
+      const elc = new THREE.Color(DB.ELEMENTS[el].color).getHex();
+      const orb = new THREE.Mesh(new THREE.SphereGeometry(0.14, 14, 14),
+        mat(elc, { flat: false, emissive: elc, emissiveIntensity: 1.4 }));
+      g.add(orb); mats.push(orb.material);
+      decos.push({
+        obj: orb, kind: 'orbit',
+        radius: 1.7, angle: (i / ELS.length) * Math.PI * 2, speed: 0.6,
+        h: 1.4 + Math.sin(i) * 0.4,
+      });
+    });
+    // 王冠
+    for (let i = 0; i < 9; i++) {
+      const a = (i / 9) * Math.PI * 2;
+      const sp = new THREE.Mesh(new THREE.ConeGeometry(0.06, 0.4, 4),
+        mat(0xffd23d, { metal: 0.8, rough: 0.15, flat: true,
+          emissive: 0xffd544, emissiveIntensity: 0.95 }));
+      sp.position.set(Math.cos(a) * 0.4, 2.4, Math.sin(a) * 0.4);
+      g.add(sp); mats.push(sp.material);
+    }
+    // 顔（神々しい無表情）
+    [-0.16, 0.16].forEach(sx => {
+      const eye = new THREE.Mesh(new THREE.SphereGeometry(0.07, 12, 12),
+        mat(0xfff8c0, { flat: false, emissive: 0xfff8c0, emissiveIntensity: 1.3, outline: false }));
+      eye.position.set(sx, 1.55, 0.55); g.add(eye); mats.push(eye.material);
+    });
+    g.userData.top = 2.7;
+    return g;
+  }
+
   /* ---- 系統 → ビルダーの辞書 -------------------------------------------- */
   const FAMILY_BUILDERS = {
     sla: buildSlimeFamily,        // スライム — DQ風水滴
@@ -1736,6 +2128,12 @@ const Scene3D = (() => {
     und: buildSkeletonFamily,     // アンデッド
     tur: buildTurtleFamily,       // 亀
     jwl: buildJewelFamily,        // 結晶
+    bug: buildBugFamily,          // 虫
+    mat: buildStoneGolemFamily,   // 岩ゴーレム
+    aqu: buildAquaticFamily,      // 水生
+    god: buildGodFamily,          // 属性神（rank 6）
+    titan: buildTitanFamily,      // 巨神（rank 7）
+    origin: buildOriginFamily,    // オリジン（究極）
   };
 
   /* ---- 全体ビルド ----------------------------------------------------- */
