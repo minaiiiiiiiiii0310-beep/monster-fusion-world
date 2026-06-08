@@ -225,23 +225,55 @@ const SnapEngine = (() => {
     return { ok: true, damage: pow };
   }
 
-  /* ----- 戦闘フェーズ終了: CPU が 攻撃 → endOfTurn → 次ターン ----- */
+  /* ----- finishCombat: 旧 API（後方互換）。一括処理。 ----- */
   function finishCombat() {
     if (!G || G.over) return G;
     if (G.phase !== 'attack') return G;
+    const plan = planCpuAttacks();
+    plan.forEach(p => attack('enemy', p.attackerUid, p.targetUid));
+    endOfRoundCleanup();
+    return G;
+  }
 
-    // 1) CPU の 攻撃
-    cpuAttackPhase();
+  /* ----- CPU の 攻撃計画を 返す（実行は しない） -----
+   * UI が 順次 実行できるよう、ターゲットを 事前に 計算。
+   */
+  function planCpuAttacks() {
+    if (!G || G.phase !== 'attack') return [];
+    const plan = [];
+    // simulate HP（カード destruction を 仮想的に 反映）
+    // 単純実装: 現状の HP で 最弱を ターゲット、計画後 すぐ実行する 前提
+    G.board.forEach((slot, laneIdx) => {
+      if (!slot.enemy.length || !slot.ally.length) return;
+      slot.enemy.forEach(attacker => {
+        if (attacker.attacked) return;
+        const targets = slot.ally.filter(c => c.hp > 0);
+        if (!targets.length) return;
+        let target = targets[0];
+        targets.forEach(t => {
+          if (t.hp < target.hp) target = t;
+          else if (t.hp === target.hp && t.pow > target.pow) target = t;
+        });
+        plan.push({
+          attackerUid: attacker.uid,
+          targetUid: target.uid,
+          lane: laneIdx,
+        });
+      });
+    });
+    return plan;
+  }
 
-    // 2) End of turn 能力（盤上の全カード）
+  /* ----- ターン末の 後片付け（CPU 攻撃が 終わった後に 呼ぶ）----- */
+  function endOfRoundCleanup() {
+    if (!G || G.over) return G;
+    // End of turn 能力
     forEachCard((card, lane, side) => triggerEndOfTurn(card, lane, side));
-
-    // 3) ロケーションの onTurnEnd
+    // ロケーション onTurnEnd
     G.board.forEach((lane, idx) => {
       if (lane.location.onTurnEnd) lane.location.onTurnEnd(idx, null, api());
     });
-
-    // 4) 次ターン or ゲーム終了
+    // 次ターン or ゲーム終了
     if (G.turn >= MAX_TURN) {
       finishGame();
       G.phase = 'end';
@@ -256,35 +288,6 @@ const SnapEngine = (() => {
       G.phase = 'deploy';
     }
     return G;
-  }
-
-  /* ----- CPU 攻撃 AI:
-   *   各 enemy カードが 同レーンの 最も HP の 低い 味方を 狙う。
-   *   HP 同じなら POW が 高い 脅威を 優先。
-   */
-  function cpuAttackPhase() {
-    G.board.forEach((slot, laneIdx) => {
-      if (!slot.enemy.length || !slot.ally.length) return;
-      slot.enemy.forEach(attacker => {
-        if (attacker.attacked) return;
-        const targets = slot.ally.filter(c => c.hp > 0);
-        if (!targets.length) return;
-        // 最弱 HP → 高 POW を 優先
-        let target = targets[0];
-        targets.forEach(t => {
-          if (t.hp < target.hp) target = t;
-          else if (t.hp === target.hp && t.pow > target.pow) target = t;
-        });
-        const pow = effectivePow(attacker, laneIdx, 'enemy');
-        applyDamage(target, pow, attacker);
-        if (attacker.ability === 'double_strike' && target.hp > 0) {
-          applyDamage(target, pow, attacker);
-        }
-        attacker.attacked = true;
-        G.log.push(`◆ ${attacker.name} → ${target.name} に ${pow}DMG`);
-        if (target.hp <= 0) destroyCard(target, laneIdx, 'ally');
-      });
-    });
   }
 
   function applyDamage(card, dmg, attacker) {
@@ -694,7 +697,7 @@ const SnapEngine = (() => {
   return {
     MAX_TURN, HAND_MAX, INITIAL_HAND, SLOTS_PER_LANE, SWAP_FEE, HP_PER_POW,
     start, state, play, unplay, withdraw, endTurn,
-    attack, finishCombat,
+    attack, finishCombat, planCpuAttacks, endOfRoundCleanup,
     declareSnap, retreat, cpuShouldSnap, applyRetreatPenalty,
     effectivePow, totals, destroyCard,
   };

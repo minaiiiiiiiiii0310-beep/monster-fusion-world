@@ -515,6 +515,205 @@
   box-shadow: 0 4px 12px #ff6b6b88;
 }
 
+/* ====== カード 視覚 強化 ====== */
+/* ランク星 */
+.snap-card-stars {
+  position: absolute;
+  top: 18px;
+  left: 50%;
+  transform: translateX(-50%);
+  font-size: 7px;
+  color: #ffd23d;
+  letter-spacing: -1px;
+  text-shadow: 0 1px 2px #000, 0 0 4px #ffd23daa;
+  pointer-events: none;
+  z-index: 2;
+  white-space: nowrap;
+}
+.lane-card .snap-card-stars { font-size: 8px; top: 20px; }
+
+/* 能力 アイコン */
+.snap-card-ability-icon {
+  position: absolute;
+  bottom: 14px;
+  right: 2px;
+  font-size: 11px;
+  background: #0008;
+  border: 1px solid #fff6;
+  border-radius: 50%;
+  width: 18px;
+  height: 18px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 3;
+  pointer-events: none;
+  text-shadow: 0 1px 1px #000;
+}
+.lane-card .snap-card-ability-icon { width: 20px; height: 20px; font-size: 12px; }
+
+/* ホロ・シマー（rank 5+） */
+.snap-card.holo {
+  position: relative;
+  overflow: hidden;
+}
+.snap-card.holo::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(120deg,
+    transparent 30%,
+    rgba(255,255,255,0.35) 50%,
+    transparent 70%);
+  background-size: 220% 220%;
+  animation: holoShine 3s linear infinite;
+  pointer-events: none;
+  border-radius: inherit;
+  z-index: 1;
+}
+@keyframes holoShine {
+  0% { background-position: -110% -110%; }
+  100% { background-position: 210% 210%; }
+}
+.snap-card.holo > * { z-index: 2; }
+
+/* 属性ごとの 外側グロー */
+.lane-card[data-el="fire"]    { box-shadow: 0 0 14px #ff7a3066, 0 2px 6px #0008, inset 0 1px 0 #ffffff44; }
+.lane-card[data-el="water"]   { box-shadow: 0 0 14px #5ab4ff66, 0 2px 6px #0008, inset 0 1px 0 #ffffff44; }
+.lane-card[data-el="grass"]   { box-shadow: 0 0 14px #5fd06a66, 0 2px 6px #0008, inset 0 1px 0 #ffffff44; }
+.lane-card[data-el="wind"]    { box-shadow: 0 0 14px #8ae8d066, 0 2px 6px #0008, inset 0 1px 0 #ffffff44; }
+.lane-card[data-el="earth"]   { box-shadow: 0 0 14px #c69a5b66, 0 2px 6px #0008, inset 0 1px 0 #ffffff44; }
+.lane-card[data-el="thunder"] { box-shadow: 0 0 14px #ffd23d66, 0 2px 6px #0008, inset 0 1px 0 #ffffff44; }
+.lane-card[data-el="light"]   { box-shadow: 0 0 14px #fff1a866, 0 2px 6px #0008, inset 0 1px 0 #ffffff44; }
+.lane-card[data-el="dark"]    { box-shadow: 0 0 14px #a06bff66, 0 2px 6px #0008, inset 0 1px 0 #ffffff44; }
+
+/* ====== 攻撃 アニメーション ====== */
+@keyframes attackPulseAlly {
+  0%   { transform: scale(1) translateY(0); }
+  35%  { transform: scale(1.18) translateY(-12px) rotate(-3deg); filter: brightness(1.4); }
+  100% { transform: scale(1) translateY(0); }
+}
+@keyframes attackPulseEnemy {
+  0%   { transform: scaleX(-1) scale(1) translateY(0); }
+  35%  { transform: scaleX(-1) scale(1.18) translateY(12px) rotate(-3deg); filter: brightness(1.4); }
+  100% { transform: scaleX(-1) scale(1) translateY(0); }
+}
+.lane-card.attacking {
+  animation: attackPulseAlly .45s cubic-bezier(.5,1.5,.5,1);
+  z-index: 10;
+}
+.lane-card.attacking.enemy-side {
+  animation: attackPulseEnemy .45s cubic-bezier(.5,1.5,.5,1);
+}
+
+@keyframes takeDamage {
+  0%, 100% { transform: translateX(0); filter: brightness(1); }
+  10%      { transform: translateX(-10px); filter: brightness(1.8); }
+  25%      { transform: translateX(10px); filter: brightness(2) sepia(0.6) hue-rotate(-30deg); }
+  40%      { transform: translateX(-8px); filter: brightness(1.5); }
+  60%      { transform: translateX(6px); filter: brightness(1.2); }
+  80%      { transform: translateX(-3px); }
+}
+.lane-card.taking-damage {
+  animation: takeDamage .55s cubic-bezier(.36,.07,.19,.97);
+  z-index: 9;
+}
+
+@keyframes cardDie {
+  0%   { transform: scale(1) rotate(0deg); opacity: 1; }
+  30%  { transform: scale(1.15) rotate(20deg); opacity: 0.95; filter: brightness(2) sepia(1) hue-rotate(-20deg); }
+  100% { transform: scale(0.1) rotate(540deg); opacity: 0; filter: brightness(0); }
+}
+.lane-card.dying {
+  animation: cardDie .8s cubic-bezier(.7,0,.84,0) forwards;
+  pointer-events: none;
+  z-index: 11;
+}
+
+/* ダメージ ポップアップ */
+.damage-popup {
+  position: fixed;
+  font-size: 36px;
+  font-weight: 900;
+  color: #ff3030;
+  text-shadow:
+    0 2px 4px #000,
+    0 0 8px #ff6b6b,
+    -2px -2px 0 #fff,
+    2px -2px 0 #fff,
+    -2px 2px 0 #fff,
+    2px 2px 0 #fff;
+  pointer-events: none;
+  z-index: 10001;
+  animation: damageFloat 1.2s ease-out forwards;
+  font-family: Arial, sans-serif;
+  transform: translateX(-50%);
+}
+@keyframes damageFloat {
+  0%   { transform: translate(-50%, 0) scale(0.4); opacity: 0; }
+  20%  { transform: translate(-50%, -8px) scale(1.4); opacity: 1; }
+  60%  { transform: translate(-50%, -40px) scale(1.1); opacity: 1; }
+  100% { transform: translate(-50%, -80px) scale(0.9); opacity: 0; }
+}
+
+/* 攻撃 スラッシュ */
+.attack-slash {
+  position: fixed;
+  width: 80px;
+  height: 80px;
+  pointer-events: none;
+  z-index: 10000;
+  transform: translate(-50%, -50%);
+  background:
+    radial-gradient(circle, #ffffff 0%, #ffd23d 30%, transparent 65%);
+  animation: slashBoom .35s ease-out forwards;
+  border-radius: 50%;
+  mix-blend-mode: screen;
+}
+@keyframes slashBoom {
+  0%   { transform: translate(-50%, -50%) scale(0.2); opacity: 0; }
+  30%  { transform: translate(-50%, -50%) scale(1.2); opacity: 1; }
+  100% { transform: translate(-50%, -50%) scale(2); opacity: 0; }
+}
+
+/* HP バー の 減少 アニメ */
+.snap-card-hp .hp-bar {
+  transition: width .5s cubic-bezier(.36,0,.66,-0.56);
+}
+
+/* ====== バナー強化 ====== */
+.snap-banner.turn::before,
+.snap-banner.snap::before {
+  content: '';
+  position: absolute;
+  inset: -20px;
+  background: radial-gradient(circle, #ffd23dcc 0%, transparent 70%);
+  z-index: -1;
+  border-radius: 50%;
+  animation: bannerPulse 1.4s ease-out;
+}
+@keyframes bannerPulse {
+  0%   { transform: scale(0.6); opacity: 0; }
+  40%  { transform: scale(1.4); opacity: 1; }
+  100% { transform: scale(2); opacity: 0; }
+}
+
+/* Snap! バナーの きらめき */
+.snap-banner.snap::after {
+  content: '✨💥✨';
+  position: absolute;
+  top: -36px;
+  left: 50%;
+  transform: translateX(-50%);
+  font-size: 24px;
+  letter-spacing: 12px;
+  animation: sparkle 1.2s ease-out;
+}
+@keyframes sparkle {
+  0%, 100% { opacity: 0; }
+  30%, 70% { opacity: 1; }
+}
+
 /* ===== アニメーション ===== */
 @keyframes cardEnter {
   0%   { opacity: 0; transform: translateY(-20px) scale(.7); }

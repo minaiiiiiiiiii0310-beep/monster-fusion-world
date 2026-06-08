@@ -225,18 +225,48 @@ const SnapUI = (() => {
     const hpCls = hpPct < 35 ? 'low' : hpPct < 70 ? 'mid' : 'ok';
     const hurt = c._lastHp != null && c._lastHp > hp ? ' hurt' : '';
     c._lastHp = hp;
+
+    // ランク星（1〜7）
+    const rank = Math.min(7, Math.max(1, c.rank || 1));
+    const stars = '★'.repeat(Math.min(5, rank)) + (rank > 5 ? '+' : '');
+    const holoCls = rank >= 5 ? ' holo' : '';
+
+    // 能力アイコン
+    const abilityIcon = abilityIconFor(c.ability);
+
     return `
-      <div class="snap-card lane-card${pendingCls}${sideCls}${justCls}${hurt}${extraCls}" data-el="${el}" ${act}>
+      <div class="snap-card lane-card${pendingCls}${sideCls}${justCls}${hurt}${extraCls}${holoCls}"
+           data-el="${el}" data-uid="${c.uid}" ${act}>
         <div class="snap-card-cost">${c.cost}</div>
         <div class="snap-card-pow">${pow}</div>
+        ${abilityIcon ? `<div class="snap-card-ability-icon" title="${c.abilityText || ''}">${abilityIcon}</div>` : ''}
         <div class="snap-card-art-wrap">${art}</div>
         <div class="snap-card-name">${c.name}</div>
+        <div class="snap-card-stars">${stars}</div>
         <div class="snap-card-hp">
           <span class="hp-bar ${hpCls}" style="width:${hpPct}%"></span>
           <span class="hp-text">${hp}/${maxHp}</span>
         </div>
       </div>
     `;
+  }
+
+  // 能力 → アイコン マッピング
+  function abilityIconFor(id) {
+    if (!id || id === 'none') return '';
+    const map = {
+      slime_buff: '⬆', rank_up: '⬆', chain_buff: '🔗', elemental_boost: '🔥',
+      angel_bless: '✨', titan_boost: '💪', ongoing_aura: '🌟',
+      growth: '📈', regen: '💚', drain: '💀', heal_self: '💗', heal_lane: '💚',
+      heal_draw: '🃏', draw_2: '🎴',
+      bird_fly: '🦋', swap_lane: '🌀',
+      devil_strike: '⚔', dragon_burn: '🔥', explode: '💥', death_curse: '☠',
+      summon: '🥚', bounce_enemy: '💨', copy_strongest: '👯',
+      golem_shield: '🛡', shield: '🛡', metal_dodge: '🛡', light_aura: '☀',
+      phoenix_revive: '🔄', berserker: '🩸', lifesteal: '🩸',
+      pierce: '🏹', double_strike: '⚔⚔',
+    };
+    return map[id] || '✦';
   }
 
   function renderHand() {
@@ -391,6 +421,10 @@ const SnapUI = (() => {
   function attackTarget(uid) {
     const G = SnapEngine.state();
     if (!G || G.phase !== 'attack' || !selectedAttacker) return;
+    // 攻撃前の DOM 要素を 取得
+    const attackerEl = document.querySelector(`.lane-card[data-uid="${selectedAttacker.uid}"]`);
+    const targetEl = document.querySelector(`.lane-card[data-uid="${uid}"]`);
+    const attackerSnapshot = selectedAttacker.uid;
     const res = SnapEngine.attack('ally', selectedAttacker.uid, +uid);
     if (!res.ok) {
       if (typeof SoundFX !== 'undefined') SoundFX.sfx('cancel');
@@ -399,27 +433,116 @@ const SnapUI = (() => {
     }
     selectedAttacker = null;
     if (typeof SoundFX !== 'undefined') SoundFX.sfx('crit');
-    flashBattle();
-    render();
+    // 攻撃アニメーション
+    const targetGstate = SnapEngine.state();
+    let targetCard = null;
+    targetGstate.board.forEach(s => s.enemy.concat(s.ally).forEach(c => {
+      if (c.uid === +uid) targetCard = c;
+    }));
+    // 既に 破壊された 場合は targetCard が undefined → killed フラグ
+    const killed = !targetCard || targetCard.hp <= 0;
+    showAttackAnim(attackerEl, targetEl, res.damage || 0, killed);
+    // アニメ後に 再描画
+    setTimeout(() => render(), 600);
   }
+
+  /* ===== CPU 順次攻撃 ===== */
+  let _cpuStepBusy = false;
 
   function finishCombat() {
     const G = SnapEngine.state();
-    if (!G || G.phase !== 'attack') return;
-    const turnBefore = G.turn;
-    SnapEngine.finishCombat();
+    if (!G || G.phase !== 'attack' || _cpuStepBusy) return;
     selectedAttacker = null;
     if (typeof SoundFX !== 'undefined') SoundFX.sfx('buff');
+    const plan = SnapEngine.planCpuAttacks();
+    if (!plan.length) {
+      // 攻撃なし → そのまま 終わる
+      finalizeRound();
+      return;
+    }
+    _cpuStepBusy = true;
+    stepCpu(plan, 0);
+  }
+
+  function stepCpu(plan, idx) {
+    if (idx >= plan.length) {
+      _cpuStepBusy = false;
+      finalizeRound();
+      return;
+    }
+    const { attackerUid, targetUid } = plan[idx];
+    const attackerEl = document.querySelector(`.lane-card[data-uid="${attackerUid}"]`);
+    const targetEl = document.querySelector(`.lane-card[data-uid="${targetUid}"]`);
+    // 攻撃 実行
+    const res = SnapEngine.attack('enemy', attackerUid, targetUid);
+    if (!res.ok) {
+      // ターゲットが すでに 破壊 等で 失敗 → スキップ
+      stepCpu(plan, idx + 1);
+      return;
+    }
+    // 破壊判定（再取得）
+    const G = SnapEngine.state();
+    let targetCard = null;
+    G.board.forEach(s => s.ally.concat(s.enemy).forEach(c => {
+      if (c.uid === targetUid) targetCard = c;
+    }));
+    const killed = !targetCard || targetCard.hp <= 0;
+    showAttackAnim(attackerEl, targetEl, res.damage || 0, killed);
+    if (typeof SoundFX !== 'undefined') SoundFX.sfx('crit');
+    setTimeout(() => {
+      render();
+      // 次の 攻撃まで 短い間隔
+      setTimeout(() => stepCpu(plan, idx + 1), 200);
+    }, 600);
+  }
+
+  function finalizeRound() {
+    const G = SnapEngine.state();
+    const turnBefore = G.turn;
+    SnapEngine.endOfRoundCleanup();
     if (G.over) recordResult(G);
     render();
-    // ターン切替バナー
     if (G.turn > turnBefore && !G.over) {
       showTurnBanner(G.turn);
     }
-    // バトルがあった場合の フラッシュ
-    if ((G.log || []).slice(-8).some(l => l.includes('DMG'))) {
-      flashBattle();
+  }
+
+  /* ===== 攻撃 ビジュアル ===== */
+  function showAttackAnim(attackerEl, targetEl, damage, killed) {
+    if (attackerEl) {
+      attackerEl.classList.add('attacking');
+      setTimeout(() => attackerEl.classList.remove('attacking'), 450);
     }
+    if (targetEl) {
+      targetEl.classList.add('taking-damage');
+      if (killed) targetEl.classList.add('dying');
+      setTimeout(() => {
+        targetEl.classList.remove('taking-damage');
+      }, 550);
+    }
+    // ダメージ ポップアップ
+    if (targetEl && damage > 0) {
+      const rect = targetEl.getBoundingClientRect();
+      const dmg = document.createElement('div');
+      dmg.className = 'damage-popup';
+      dmg.textContent = '-' + damage;
+      dmg.style.left = (rect.left + rect.width / 2) + 'px';
+      dmg.style.top = (rect.top + 8) + 'px';
+      document.body.appendChild(dmg);
+      setTimeout(() => dmg.remove(), 1200);
+    }
+    // スラッシュ エフェクト（攻撃者 → ターゲットの 中間に 短い 光）
+    if (attackerEl && targetEl) {
+      const a = attackerEl.getBoundingClientRect();
+      const t = targetEl.getBoundingClientRect();
+      const slash = document.createElement('div');
+      slash.className = 'attack-slash';
+      slash.style.left = ((a.left + a.width / 2 + t.left + t.width / 2) / 2) + 'px';
+      slash.style.top = ((a.top + a.height / 2 + t.top + t.height / 2) / 2) + 'px';
+      document.body.appendChild(slash);
+      setTimeout(() => slash.remove(), 350);
+    }
+    flashBattle();
   }
 
   /* ===== 演出 ===== */
