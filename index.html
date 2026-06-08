@@ -5,8 +5,8 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
 
   <!-- 基本メタ -->
-  <title>モンスターワールド — 3D モンスター対戦・融合 Webゲーム</title>
-  <meta name="description" content="3D 3対3 のモンスター対戦＋融合（ゆうごう）で 自分だけのチームを 育てよう。スライムから巨神まで、157種類のモンスターが あなたを 待っている。">
+  <title>モンスター・スナップ — 3レーン カードバトル Webゲーム</title>
+  <meta name="description" content="157体の モンスターを 使った 3レーン × 6ターン の カードバトル。シンプルなのに 奥深い 戦略 ゲーム。スマホで サクッと 遊べる。">
   <meta name="author" content="minaiiiiiiiiii0310-beep">
   <meta name="theme-color" content="#10131c">
 
@@ -16,19 +16,19 @@
   <link rel="apple-touch-icon" href="icon.svg">
   <meta name="apple-mobile-web-app-capable" content="yes">
   <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
-  <meta name="apple-mobile-web-app-title" content="モンスターワールド">
+  <meta name="apple-mobile-web-app-title" content="モンスター・スナップ">
   <meta name="mobile-web-app-capable" content="yes">
 
   <!-- OGP / Twitter Card -->
   <meta property="og:type" content="website">
-  <meta property="og:title" content="モンスターワールド — 3Dモンスター対戦・融合ゲーム">
-  <meta property="og:description" content="157種のモンスターを 集め、融合して 自分だけのチームを 育てよう。スマホで遊べる本格3Dゲーム。">
+  <meta property="og:title" content="モンスター・スナップ — 3レーン カードバトル">
+  <meta property="og:description" content="157体の モンスターで 3レーン × 6ターン の カードバトル。シンプルなのに 奥深い。スマホで サクッと。">
   <meta property="og:image" content="icon.svg">
   <meta property="og:url" content="https://minaiiiiiiiiii0310-beep.github.io/monster-fusion-world/">
   <meta property="og:locale" content="ja_JP">
   <meta name="twitter:card" content="summary_large_image">
-  <meta name="twitter:title" content="モンスターワールド">
-  <meta name="twitter:description" content="3Dモンスター対戦＋融合 Webゲーム">
+  <meta name="twitter:title" content="モンスター・スナップ">
+  <meta name="twitter:description" content="3レーン カードバトル Webゲーム">
   <meta name="twitter:image" content="icon.svg">
 
   <link rel="stylesheet" href="css/style.css">
@@ -41,8 +41,8 @@
       <div class="splash-logo" aria-hidden="true">
         <img src="icon.svg" alt="" width="120" height="120">
       </div>
-      <div class="splash-title">モンスターワールド</div>
-      <div class="splash-sub">3D モンスター対戦・融合 ゲーム</div>
+      <div class="splash-title">モンスター・スナップ</div>
+      <div class="splash-sub">3レーン × 6ターン カードバトル</div>
       <div class="splash-spinner"></div>
       <div class="splash-tip">ロード中…</div>
     </div>
@@ -51,7 +51,7 @@
   <div id="app">
     <div id="screen"></div>
   </div>
-  <div class="rotate-hint">📱 スマホは横向きが おすすめです</div>
+  <div class="rotate-hint">📱 スマホは 縦持ち推奨</div>
   <button id="mute-btn" class="mute-btn" data-act="mute" title="音のオン/オフ" aria-label="音のオン/オフ">🔊</button>
 
   <!-- Service Worker 登録（PWA: オフライン対応＋インストール可） -->
@@ -61,7 +61,7 @@
         navigator.serviceWorker.register('sw.js').catch((e) => console.warn('SW registration failed', e));
       });
     }
-    // グローバルエラーハンドラ（致命的なエラーでも復旧しやすく）
+    // グローバルエラーハンドラ
     window.addEventListener('error', (e) => {
       console.error('[GameError]', e.message, e.error);
       try { document.getElementById('splash')?.classList.add('done'); } catch (x) {}
@@ -71,17 +71,12 @@
     });
   </script>
 
-  <script src="js/vendor/three.min.js"></script>
+  <!-- Snap 専用ゲームの スクリプト -->
   <script src="js/firebase-config.js"></script>
   <script src="js/audio.js"></script>
   <script src="js/art.js"></script>
   <script src="js/data.js"></script>
   <script src="js/state.js"></script>
-  <script src="js/story.js"></script>
-  <script src="js/battle.js"></script>
-  <script src="js/scene3d.js"></script>
-  <script src="js/world.js"></script>
-  <script src="js/arena.js"></script>
   <script src="js/online.js"></script>
   <script src="js/snap_data.js"></script>
   <script src="js/snap_locations.js"></script>

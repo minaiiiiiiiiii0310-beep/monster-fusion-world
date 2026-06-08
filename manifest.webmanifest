@@ -1,7 +1,7 @@
 {
-  "name": "モンスターワールド",
-  "short_name": "MWorld",
-  "description": "3D 3対3 モンスター対戦＋融合（ゆうごう）Webゲーム。スライムから巨神まで、自分だけのチームを育てよう。",
+  "name": "モンスター・スナップ",
+  "short_name": "MSnap",
+  "description": "157体の モンスターを 使った 3レーン × 6ターン の カードバトル。シンプルなのに 奥深い 戦略 ゲーム。",
   "start_url": "./",
   "scope": "./",
   "display": "standalone",

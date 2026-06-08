@@ -3,7 +3,7 @@
  *  Stale-While-Revalidate 戦略：素早く表示しつつ、裏で最新を取得して
  *  次回起動に反映。バージョン更新時は古いキャッシュを破棄。
  * =======================================================================*/
-const CACHE_VERSION = 'mfw-v6';
+const CACHE_VERSION = 'mfw-v7';
 const STATIC_ASSETS = [
   './',
   './index.html',
@@ -12,16 +12,10 @@ const STATIC_ASSETS = [
   './icon.svg',
   './css/style.css',
   './css/snap.css',
-  './js/vendor/three.min.js',
   './js/audio.js',
   './js/art.js',
   './js/data.js',
   './js/state.js',
-  './js/story.js',
-  './js/battle.js',
-  './js/scene3d.js',
-  './js/world.js',
-  './js/arena.js',
   './js/online.js',
   './js/snap_data.js',
   './js/snap_locations.js',
