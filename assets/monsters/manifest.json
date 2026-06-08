@@ -1,4 +1,4 @@
 {
-  "comment": "ここに置いた <種族ID>.png のリストを species 配列に書くと、ゲーム起動時に即座に存在を認識できます。書かなくても各画像は読み込み時に自動判定されるので、ファイルを置くだけでもOK。",
-  "species": []
+  "comment": "AI生成画像のリスト（高速化用）。新しい画像を追加したら ここにも 種族IDを書くか、scripts/install-ai-art.bat が自動更新。",
+  "species": ["bea1", "bir1", "cat1", "sla1"]
 }
