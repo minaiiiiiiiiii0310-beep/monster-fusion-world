@@ -1159,6 +1159,16 @@ const UI = (() => {
         </div>
 
         <div class="set-row">
+          <b>🎨 AIモンスター画像 作成</b>
+          <p class="hint">
+            PC を使わず スマホだけで AI画像を 生成して ゲームに 反映できます。
+          </p>
+          <a href="mobile.html" class="btn primary" target="_blank" rel="noopener" style="text-decoration:none;display:inline-block;">
+            📱 スマホで AI画像を作る
+          </a>
+        </div>
+
+        <div class="set-row">
           <b>このゲームについて</b>
           <p class="hint">
             モンスターワールド v1 — 31系統・157種のモンスター。<br>

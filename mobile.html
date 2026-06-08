@@ -1,0 +1,219 @@
+<!DOCTYPE html>
+<html lang="ja"><head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+<title>📱 モバイル AI生成 → アップロード（PC不要）</title>
+<style>
+  :root { --bg:#10131c; --panel:#1d2438; --line:#33405f; --text:#e8ecf6;
+          --sub:#9aa6c4; --gold:#ffcf5b; --ok:#56d364; --blue:#4285f4;
+          --green:#34a853; --red:#ea4335; --orange:#fb8c00; }
+  * { box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
+  body { margin:0; background:var(--bg); color:var(--text);
+         font-family:-apple-system,"Hiragino Kaku Gothic ProN","Yu Gothic UI",sans-serif;
+         font-size:15px; line-height:1.55; padding:env(safe-area-inset-top) 0 env(safe-area-inset-bottom); }
+  .container { max-width: 560px; margin: 0 auto; padding: 16px; }
+  h1 { color: var(--gold); font-size: 22px; margin: 0 0 4px; }
+  .lead { color: var(--sub); font-size: 13px; margin-bottom: 16px; }
+  h2 { color:var(--text); font-size:16px; margin: 22px 0 8px;
+       padding-bottom:6px; border-bottom:1px solid var(--line); }
+  .step { background: var(--panel); border: 1px solid var(--line);
+          border-radius: 14px; padding: 14px; margin-bottom: 12px; }
+  .step .num { background: var(--gold); color: #0c0f17; width: 28px; height: 28px;
+               border-radius: 50%; display:inline-flex; align-items:center; justify-content:center;
+               font-weight: 900; margin-right: 8px; vertical-align: middle; }
+  .step b { vertical-align: middle; }
+  .step p { margin: 8px 0; }
+  .step .hint { font-size: 12px; color: var(--sub); }
+  .btn { display:inline-block; background: var(--blue); color: white;
+         padding: 10px 16px; border-radius: 10px; text-decoration: none;
+         font-weight: 700; font-size: 14px; margin: 4px 4px 4px 0;
+         border:none; cursor:pointer; min-height:44px;
+         display:inline-flex; align-items:center; justify-content:center; }
+  .btn:active { transform: scale(.96); }
+  .btn.green { background: var(--green); }
+  .btn.gold { background: var(--gold); color: #0c0f17; }
+  .btn.orange { background: var(--orange); }
+  .btn.gh { background: #24292e; }
+  code { background: #0a0d18; padding: 2px 6px; border-radius: 4px;
+         color: var(--gold); font-family: monospace; font-size: 13px; }
+
+  /* スターター6 ジェネレータ */
+  .mon-list { display: flex; flex-direction: column; gap: 8px; margin-top: 8px; }
+  .mon { background: #0e1426; border: 1px solid var(--line); border-radius: 10px;
+         padding: 10px; }
+  .mon-head { display: flex; justify-content: space-between; align-items: center; }
+  .mon-id { font-family: monospace; color: var(--gold); font-weight: 700; }
+  .mon-name { color: var(--sub); font-size: 12px; }
+  .mon-prompt { font-size: 12px; color: var(--text); margin: 6px 0; opacity: 0.85; }
+  .mon-btns { display: flex; gap: 6px; flex-wrap: wrap; margin-top: 6px; }
+  .mon-btns .btn { padding: 7px 12px; font-size: 12.5px; min-height: 36px; }
+
+  .toast { position: fixed; left: 50%; bottom: 24px; transform: translate(-50%, 16px);
+           background: #0b0f1cee; border: 1px solid var(--ok); color: white;
+           padding: 12px 20px; border-radius: 14px; font-size: 14px; font-weight: 700;
+           opacity: 0; transition: .25s; z-index: 9999; pointer-events: none; }
+  .toast.show { opacity: 1; transform: translate(-50%, 0); }
+
+  .switch-pack { display:flex; gap:6px; flex-wrap:wrap; margin-bottom: 8px; }
+  .switch-pack button { background: #2a3050; color: white; border: 1px solid var(--line);
+                       padding: 6px 12px; border-radius: 8px; font-size: 12px; }
+  .switch-pack button.on { background: var(--gold); color: #0c0f17; border-color: var(--gold); }
+</style>
+</head>
+<body>
+<div class="container">
+  <h1>📱 スマホだけで AIモンスター作成</h1>
+  <div class="lead">PC を使わずに ボタンタップだけで モンスター画像を 生成 → ゲームに 反映できます。</div>
+
+  <div class="step">
+    <span class="num">1</span><b>下の各モンスターで AI生成</b>
+    <p>緑 <b>ImageFX</b>（完全無料・推奨）または 青 <b>Gemini</b>・他のサービスのボタンをタップ。
+    プロンプトが自動コピー＆AIが新タブで開きます。AIの入力欄に <code>長押し→貼り付け</code>。</p>
+    <p class="hint">注: 各サービスは Google/Microsoft 等のログインが必要です。</p>
+  </div>
+
+  <div class="step">
+    <span class="num">2</span><b>気に入った1枚を保存（長押し→「画像を保存」）</b>
+    <p>4枚出るので 1枚を選び、写真アプリに保存。<strong>そのときファイル名は気にしなくてOK</strong>
+    （あとで GitHub 側でリネームします）。</p>
+  </div>
+
+  <div class="step">
+    <span class="num">3</span><b>GitHub にアップロード</b>
+    <p>下の <strong>赤いボタン</strong>から GitHub の アップロード画面を直接開けます。
+    Microsoft アカウントではなく <b>あなたの GitHub アカウント</b>でログインしてください。</p>
+    <a class="btn orange" href="https://github.com/minaiiiiiiiiii0310-beep/monster-fusion-world/upload/main/assets/monsters" target="_blank" rel="noopener">
+      📤 アセットフォルダにアップロード
+    </a>
+    <p class="hint">①「choose your files」または ドラッグエリアをタップ →
+    ② 保存した画像を選択 →
+    ③ ファイル名を <code>sla1.png</code> 等に変更（モバイル GitHub UI ではアップロード時にリネーム可能）→
+    ④ 下まで スクロールして「Commit changes」</p>
+  </div>
+
+  <div class="step">
+    <span class="num">4</span><b>1〜2分待ってゲームをリロード</b>
+    <p>GitHub Pages が自動で再デプロイされます。
+    <a href="https://minaiiiiiiiiii0310-beep.github.io/monster-fusion-world/" target="_blank" style="color:var(--blue)">ゲームを開く →</a>
+    リロードすると「🎨 AI画像を検出！」のトーストが出ます。</p>
+    <p>せってい → バトル表示 → <strong>🎴 2Dカード</strong> を選ぶと、AI絵のカードでバトルできます。</p>
+  </div>
+
+  <h2>🎴 スターター6種（まずこれだけ作る）</h2>
+  <div class="switch-pack" id="aiSwitch">
+    <button class="on" data-ai="imagefx">🟢 ImageFX（無料・推奨）</button>
+    <button data-ai="gemini">🔵 Gemini</button>
+    <button data-ai="bing">🟦 Bing</button>
+  </div>
+
+  <div class="mon-list" id="monList"></div>
+
+  <h2>📋 全 157 種のプロンプト集</h2>
+  <p class="lead">スタータ6 で慣れたら、こちらの一覧から残りも生成できます。</p>
+  <p>
+    <a class="btn green" href="assets/monsters/prompts/gemini-quick-links.html">🤖 Gemini/ImageFX 全157</a>
+    <a class="btn" href="assets/monsters/prompts/bing-quick-links.html">🟦 Bing 全157</a>
+  </p>
+  <p>
+    <a class="btn" href="assets/monsters/prompts/HOW-TO.md">📖 HOW-TO 詳細</a>
+    <a class="btn gh" href="https://github.com/minaiiiiiiiiii0310-beep/monster-fusion-world/tree/main/assets/monsters" target="_blank">📁 GitHubで確認</a>
+  </p>
+
+  <h2>💡 ヒント</h2>
+  <ul>
+    <li><b>ファイル拡張子は何でもOK</b>: <code>.png</code> / <code>.jpg</code> / <code>.jpeg</code> / <code>.webp</code> どれでも自動認識</li>
+    <li><b>サイズも自動調整</b>: 大きすぎる画像は CSS で自動縮小（多少 重くなる程度）</li>
+    <li><b>背景透過したい場合</b>: <a href="https://www.remove.bg" target="_blank" style="color:var(--blue)">remove.bg</a> でブラウザだけで処理可能</li>
+    <li><b>正方形(1:1) 推奨</b>: 縦長/横長でも表示はされるが、カードに余白が出る</li>
+    <li><b>iPhone でファイル名を変える</b>: ファイルアプリで長押し → 名称変更</li>
+    <li><b>Android でファイル名を変える</b>: ファイル → ⋮ → リネーム / または GitHub アップロード時に直接入力</li>
+  </ul>
+
+  <h2>📚 用語</h2>
+  <ul>
+    <li><b>種族ID</b>: <code>sla1</code>（スライムTier1）等。ファイル名は必ず この形式で</li>
+    <li>有効な ID: 28 系統 × 5 ティア + 属性神8 + 巨神8 + オリジン = 157 種</li>
+    <li>全 ID は <a href="assets/monsters/prompts/HOW-TO.md" style="color:var(--blue)">HOW-TO.md</a> に</li>
+  </ul>
+</div>
+
+<div id="toast" class="toast">📋 コピーしました！ 次のタブで長押し→貼り付け</div>
+
+<script>
+  const SFX = ", chibi cartoon style, anime aesthetic, bold black outlines, soft cel-shading, vibrant colors, full body centered, transparent background, square 1:1, no text or watermark";
+
+  const STARTER = [
+    ["sla1", "スラ (青スライム)", "A tiny blue slime drop with two big sparkling eyes and a cheerful smile"],
+    ["bea1", "コボル (オオカミの子)", "A small brown wolf cub with sharp fangs and bright yellow eyes"],
+    ["bir1", "ピヨル (ヒヨコ)", "A fluffy yellow baby chick with tiny wings and big round eyes"],
+    ["pla1", "マンドラ (植物)", "A small green mandrake plant creature with leafy hair and tiny arms"],
+    ["cat1", "ニャン (子猫)", "A cute orange tabby kitten in a playful pose"],
+    ["mus1", "キノピ (キノコ)", "A red mushroom monster with white spots on its cap and a cute face on its white stem"],
+  ];
+
+  const URLS = {
+    imagefx: 'https://aitestkitchen.withgoogle.com/tools/image-fx',
+    gemini: 'https://gemini.google.com/app',
+    bing: (p) => 'https://www.bing.com/images/create?q=' + encodeURIComponent(p),
+  };
+
+  let currentAI = 'imagefx';
+
+  function showToast() {
+    const t = document.getElementById('toast');
+    t.classList.add('show');
+    clearTimeout(showToast._t);
+    showToast._t = setTimeout(() => t.classList.remove('show'), 2400);
+  }
+
+  async function generate(id, prompt) {
+    const full = 'Create an image of ' + prompt + SFX;
+    if (currentAI === 'bing') {
+      // Bing は URL パラメータで直接渡せる
+      window.open(URLS.bing(full), '_blank', 'noopener,noreferrer');
+      return;
+    }
+    // Gemini / ImageFX: クリップボードにコピーしてから開く
+    try {
+      await navigator.clipboard.writeText(full);
+      showToast();
+    } catch (e) {
+      // クリップボードAPI失敗時はモーダルでテキスト表示
+      const ok = confirm('プロンプトをコピーできませんでした。\n下記をコピーしてください:\n\n' + full + '\n\nOKで AI を開きます。');
+      if (!ok) return;
+    }
+    setTimeout(() => {
+      window.open(URLS[currentAI], '_blank', 'noopener,noreferrer');
+    }, 200);
+  }
+
+  function render() {
+    const list = document.getElementById('monList');
+    list.innerHTML = STARTER.map(([id, name, prompt]) => `
+      <div class="mon">
+        <div class="mon-head">
+          <span class="mon-id">${id}.png</span>
+          <span class="mon-name">${name}</span>
+        </div>
+        <div class="mon-prompt">${prompt}</div>
+        <div class="mon-btns">
+          <button class="btn ${currentAI==='imagefx'?'green':currentAI==='gemini'?'':'orange'}"
+                  onclick='generate(${JSON.stringify(id)}, ${JSON.stringify(prompt)})'>
+            ${currentAI==='imagefx'?'🟢 ImageFXで生成':currentAI==='gemini'?'🔵 Geminiで生成':'🟦 Bingで生成'}
+          </button>
+        </div>
+      </div>
+    `).join('');
+  }
+
+  document.getElementById('aiSwitch').addEventListener('click', (e) => {
+    if (e.target.tagName !== 'BUTTON') return;
+    document.querySelectorAll('#aiSwitch button').forEach(b => b.classList.remove('on'));
+    e.target.classList.add('on');
+    currentAI = e.target.dataset.ai;
+    render();
+  });
+
+  render();
+</script>
+</body></html>

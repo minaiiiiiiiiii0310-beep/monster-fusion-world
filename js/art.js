@@ -14,8 +14,9 @@
  * =======================================================================*/
 const Art = (() => {
   const PATH = 'assets/monsters/';
-  const EXT = '.png';
-  // species_id -> { state: 'unknown'|'loading'|'ok'|'missing', img: HTMLImageElement|null }
+  // モバイルでの保存はリネームが面倒なので 主要な画像拡張子を全部許容
+  const EXTS = ['.png', '.jpg', '.jpeg', '.webp'];
+  // species_id -> { state: 'unknown'|'loading'|'ok'|'missing', ext: '.png', img: HTMLImageElement|null }
   const state = new Map();
 
   // 既知の(存在する)画像一覧を非同期に取得して state を埋める。
@@ -31,21 +32,24 @@ const Art = (() => {
     } catch (e) { /* manifest 無くてもOK：onerrorで個別判定 */ }
   }
 
-  function url(id) { return PATH + id + EXT; }
+  function url(id, ext) {
+    return PATH + id + (ext || (state.get(id) && state.get(id).ext) || '.png');
+  }
 
   function has(id) {
     const s = state.get(id);
     return s ? s.state === 'ok' : undefined;   // 未確認 = undefined
   }
 
-  function _markOk(id, img) {
-    state.set(id, { state: 'ok', img });
+  function _markOk(id, img, ext) {
+    state.set(id, { state: 'ok', img, ext: ext || '.png' });
   }
   function _markMissing(id) {
     state.set(id, { state: 'missing', img: null });
   }
 
-  /* HTML用: 画像 + 絵文字フォールバック をネスト */
+  /* HTML用: 画像 + 絵文字フォールバック をネスト
+     画像が見つからない場合、複数の拡張子を順に試して全部失敗したら絵文字へ */
   function imgTag(id, emoji, opts = {}) {
     const cls = opts.cls || 'mon-art';
     const alt = opts.alt || '';
@@ -55,22 +59,33 @@ const Art = (() => {
       // 過去に missing 確定 → 絵文字だけ
       return `<span class="${cls}-emoji">${emoji}</span>`;
     }
-    // 不明 または ok: <img> を出して、エラーなら絵文字に差し替え
+    // 状態既知（ok）なら そのext、それ以外は .png から始めて onerror で .jpg/.jpeg/.webp 順に試す
+    const startExt = (state.get(id) && state.get(id).ext) || '.png';
     const sizeAttr = size ? ` width="${size}" height="${size}"` : '';
-    return `<img class="${cls}" src="${url(id)}"${sizeAttr} alt="${alt}"
-      data-emoji="${emoji}" data-art-id="${id}"
+    return `<img class="${cls}" src="${url(id, startExt)}"${sizeAttr} alt="${alt}"
+      data-emoji="${emoji}" data-art-id="${id}" data-tried="${startExt}"
       onerror="window.Art && window.Art._onErr && window.Art._onErr(this)"
       onload="window.Art && window.Art._onOk && window.Art._onOk(this)">`;
   }
 
   function _onOk(imgEl) {
     const id = imgEl.dataset.artId;
-    if (id) _markOk(id);
+    const ext = imgEl.dataset.tried || '.png';
+    if (id) _markOk(id, null, ext);
   }
   function _onErr(imgEl) {
     const id = imgEl.dataset.artId;
+    const tried = (imgEl.dataset.tried || '').split(',');
+    // まだ試していない拡張子があれば 次を試す
+    const remaining = EXTS.filter(e => !tried.includes(e));
+    if (remaining.length > 0) {
+      const next = remaining[0];
+      imgEl.dataset.tried = (tried.join(',') + ',' + next).replace(/^,/, '');
+      imgEl.src = url(id, next);
+      return;
+    }
+    // 全拡張子失敗 → 絵文字に置換
     if (id) _markMissing(id);
-    // 画像を絵文字スパンに置換
     const emoji = imgEl.dataset.emoji || '';
     const span = document.createElement('span');
     span.className = (imgEl.className || 'mon-art') + '-emoji';
@@ -97,15 +112,22 @@ const Art = (() => {
     } catch (e) { texCache.set(id, null); return null; }
   }
 
-  /* 先読み（バトル開始前など）— Promise を返す */
+  /* 先読み（バトル開始前など）— Promise を返す。
+     複数の拡張子を順に試す。 */
   function preload(ids) {
     if (!Array.isArray(ids) || ids.length === 0) return Promise.resolve();
     return Promise.all(ids.map(id => new Promise(resolve => {
       if (has(id) !== undefined) return resolve();
-      const img = new Image();
-      img.onload = () => { _markOk(id, img); resolve(); };
-      img.onerror = () => { _markMissing(id); resolve(); };
-      img.src = url(id);
+      let i = 0;
+      const tryNext = () => {
+        if (i >= EXTS.length) { _markMissing(id); return resolve(); }
+        const ext = EXTS[i++];
+        const img = new Image();
+        img.onload = () => { _markOk(id, img, ext); resolve(); };
+        img.onerror = tryNext;
+        img.src = url(id, ext);
+      };
+      tryNext();
     })));
   }
 

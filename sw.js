@@ -3,10 +3,11 @@
  *  Stale-While-Revalidate 戦略：素早く表示しつつ、裏で最新を取得して
  *  次回起動に反映。バージョン更新時は古いキャッシュを破棄。
  * =======================================================================*/
-const CACHE_VERSION = 'mfw-v4';
+const CACHE_VERSION = 'mfw-v5';
 const STATIC_ASSETS = [
   './',
   './index.html',
+  './mobile.html',
   './manifest.webmanifest',
   './icon.svg',
   './css/style.css',
