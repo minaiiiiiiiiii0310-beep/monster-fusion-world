@@ -129,26 +129,32 @@ const Scene3D = (() => {
   const shade = (hex, f) => new THREE.Color(hex).multiplyScalar(f).getHex();
   const mix = (a, b, t) => new THREE.Color(a).lerp(new THREE.Color(b), t).getHex();
 
-  /* 反転裏面シェルでセル風アウトラインを追加（鳥山明風の太い縁取り）。
+  /* 反転裏面シェルでセル風アウトラインを追加（鳥山明風の縁取り）。
    * 大きめのジオメトリだけを対象（小物・装飾はスキップ）。
+   * サイズに応じてアウトラインの太さを微調整：大きい部品ほどやや薄く、
+   * 中サイズで最も太く、極小は無視（線が太すぎてつぶれるのを防ぐ）。
    */
   function addOutlines(group, options = {}) {
-    const minRadius = options.minRadius ?? 0.16;
-    const scale = options.scale ?? 1.06;
+    const minRadius = options.minRadius ?? 0.18;
+    const baseScale = options.scale ?? 1.045;
     const color = options.color ?? 0x101018;
     const toAdd = [];
     group.traverse(obj => {
       if (!obj.isMesh) return;
       if (!obj.material || !obj.material.userData || !obj.material.userData.outlineable) return;
-      // ジオメトリのサイズで取捨選択（目のハイライトのような極小は無視）
       if (!obj.geometry.boundingSphere) obj.geometry.computeBoundingSphere();
       const r = obj.geometry.boundingSphere.radius;
       if (r < minRadius) return;
-      // 装飾用（透過の薄いもの・発光強いもの）はアウトラインしない
       if (obj.material.opacity < 0.85) return;
-      toAdd.push({ obj, r });
+      // サイズに応じてアウトラインの厚みを調整：大きい部品は薄め、中サイズは普通
+      let s = baseScale;
+      if (r > 1.0) s = 1.03;
+      else if (r > 0.6) s = 1.04;
+      else if (r > 0.3) s = 1.05;
+      else s = 1.06;
+      toAdd.push({ obj, scale: s });
     });
-    toAdd.forEach(({ obj }) => {
+    toAdd.forEach(({ obj, scale }) => {
       const outlineMat = new THREE.MeshBasicMaterial({
         color, side: THREE.BackSide, transparent: false,
       });
@@ -156,9 +162,8 @@ const Scene3D = (() => {
       shell.position.copy(obj.position);
       shell.rotation.copy(obj.rotation);
       shell.scale.copy(obj.scale).multiplyScalar(scale);
-      // 親に追加（兄弟として）
       obj.parent.add(shell);
-      shell.renderOrder = -1;   // 中身より先に描画
+      shell.renderOrder = -1;
     });
   }
 
@@ -779,55 +784,57 @@ const Scene3D = (() => {
     const col = new THREE.Color(DB.ELEMENTS[species.el].color).getHex();
     const tier = Math.min(5, species.rank);
     const g = new THREE.Group();
-    // ドラクエ風: 円錐に近い水滴ボディ
-    // 下半分の半球
-    const bottom = new THREE.Mesh(new THREE.SphereGeometry(1.0, 28, 16, 0, Math.PI * 2, Math.PI / 2, Math.PI / 2),
+    // ドラクエ風水滴ボディ：地面に座る丸い土台 → なめらかに尖る上部
+    // 土台のドーム（地面に接するよう底をy=0に）
+    const dome = new THREE.Mesh(
+      new THREE.SphereGeometry(1.0, 28, 16, 0, Math.PI * 2, 0, Math.PI / 2),
       mat(col, { rough: 0.3, opacity: 0.95 }));
-    bottom.position.y = 0.7; bottom.scale.set(1.05, 0.95, 1.05);
-    g.add(bottom); mats.push(bottom.material);
-    // 上の水滴（球＋細めの円錐）
-    const upperBall = new THREE.Mesh(new THREE.SphereGeometry(0.78, 24, 24),
+    dome.position.y = 0; dome.scale.set(1.05, 0.85, 1.05);
+    g.add(dome); mats.push(dome.material);
+    // 上のふくらみ（顔がのる球）
+    const upperBall = new THREE.Mesh(new THREE.SphereGeometry(0.85, 24, 24),
       mat(col, { rough: 0.3, opacity: 0.95 }));
-    upperBall.position.y = 1.05; upperBall.scale.set(0.95, 1.0, 0.95);
+    upperBall.position.y = 0.95; upperBall.scale.set(0.95, 0.92, 0.95);
     g.add(upperBall); mats.push(upperBall.material);
-    const tip = new THREE.Mesh(new THREE.ConeGeometry(0.32, 0.55, 14),
+    // 先端のとがり
+    const tip = new THREE.Mesh(new THREE.ConeGeometry(0.3, 0.55, 14),
       mat(col, { rough: 0.3, opacity: 0.95 }));
-    tip.position.y = 1.78;
+    tip.position.y = 1.75;
     g.add(tip); mats.push(tip.material);
-    // 大きな目（DQスライム風: 黒く小さい点ではなく白目＋大きな瞳）
+    // 大きな目（DQスライム風: 白目＋大きな瞳＋ハイライト）
     [-0.28, 0.28].forEach(sx => {
-      const eyeW = new THREE.Mesh(new THREE.SphereGeometry(0.16, 16, 16),
+      const eyeW = new THREE.Mesh(new THREE.SphereGeometry(0.18, 16, 16),
         mat(0xffffff, { flat: false, rough: 0.2 }));
-      eyeW.position.set(sx, 1.1, 0.55); g.add(eyeW); mats.push(eyeW.material);
-      const eyeB = new THREE.Mesh(new THREE.SphereGeometry(0.1, 12, 12),
+      eyeW.position.set(sx, 1.05, 0.6); g.add(eyeW); mats.push(eyeW.material);
+      const eyeB = new THREE.Mesh(new THREE.SphereGeometry(0.11, 12, 12),
         mat(0x0a0a14, { flat: false, rough: 0.25 }));
-      eyeB.position.set(sx, 1.08, 0.7); eyeB.scale.set(1, 1.15, 0.9);
+      eyeB.position.set(sx, 1.03, 0.76); eyeB.scale.set(1, 1.2, 0.9);
       g.add(eyeB); mats.push(eyeB.material);
-      const hl = new THREE.Mesh(new THREE.SphereGeometry(0.045, 8, 8),
+      const hl = new THREE.Mesh(new THREE.SphereGeometry(0.05, 8, 8),
         mat(0xffffff, { flat: false, emissive: 0xffffff, emissiveIntensity: 0.8, outline: false }));
-      hl.position.set(sx + 0.04, 1.18, 0.78); g.add(hl); mats.push(hl.material);
+      hl.position.set(sx + 0.045, 1.14, 0.85); g.add(hl); mats.push(hl.material);
     });
-    // にっこり口（曲線ボックスで近似）
-    const mouth = new THREE.Mesh(new THREE.TorusGeometry(0.18, 0.045, 6, 10, Math.PI),
+    // にっこり口（曲線）
+    const mouth = new THREE.Mesh(new THREE.TorusGeometry(0.2, 0.048, 6, 10, Math.PI),
       mat(0x281428, { flat: false, rough: 0.5 }));
-    mouth.position.set(0, 0.78, 0.85); mouth.rotation.x = Math.PI;
+    mouth.position.set(0, 0.7, 0.9); mouth.rotation.x = Math.PI;
     g.add(mouth); mats.push(mouth.material);
-    // ティア3+: 王冠/ツノで進化感
+    // ティア3+: 王冠
     if (tier >= 3) {
-      const crown = new THREE.Mesh(new THREE.CylinderGeometry(0.34, 0.34, 0.18, 8),
+      const crown = new THREE.Mesh(new THREE.CylinderGeometry(0.36, 0.36, 0.2, 8),
         mat(mix(col, 0xffd23d, 0.5), { metal: 0.4, rough: 0.3 }));
-      crown.position.y = 1.55; g.add(crown); mats.push(crown.material);
+      crown.position.y = 1.5; g.add(crown); mats.push(crown.material);
     }
     if (tier >= 4) {
       for (let i = 0; i < 5; i++) {
         const a = (i / 5) * Math.PI * 2;
-        const p = new THREE.Mesh(new THREE.ConeGeometry(0.07, 0.18, 4),
+        const p = new THREE.Mesh(new THREE.ConeGeometry(0.08, 0.2, 4),
           mat(mix(col, 0xffd23d, 0.5), { metal: 0.4 }));
-        p.position.set(Math.cos(a) * 0.34, 1.7, Math.sin(a) * 0.34);
+        p.position.set(Math.cos(a) * 0.36, 1.68, Math.sin(a) * 0.36);
         g.add(p); mats.push(p.material);
       }
     }
-    g.userData.top = 2.0 + (tier >= 3 ? 0.2 : 0);
+    g.userData.top = 2.05 + (tier >= 3 ? 0.2 : 0);
     return g;
   }
 
@@ -1055,16 +1062,16 @@ const Scene3D = (() => {
       f.rotation.set(-0.4, 0, i * 0.18);
       g.add(f); mats.push(f.material);
     });
-    // 細い足
+    // 細い足（地面に届くよう調整）
     [-0.18, 0.18].forEach(sx => {
-      const leg = new THREE.Mesh(new THREE.CylinderGeometry(0.06, 0.06, 0.5, 6),
+      const leg = new THREE.Mesh(new THREE.CylinderGeometry(0.07, 0.07, 0.6, 6),
         mat(0xc78821));
-      leg.position.set(sx, 0.45, 0.05); g.add(leg); mats.push(leg.material);
-      // 鳥の足趾
+      leg.position.set(sx, 0.32, 0.05); g.add(leg); mats.push(leg.material);
+      // 鳥の足趾（地面に密着）
       [-0.07, 0.07].forEach(tx => {
-        const claw = new THREE.Mesh(new THREE.BoxGeometry(0.04, 0.06, 0.18),
+        const claw = new THREE.Mesh(new THREE.BoxGeometry(0.05, 0.05, 0.2),
           mat(0x8a5a18));
-        claw.position.set(sx + tx, 0.18, 0.15); g.add(claw); mats.push(claw.material);
+        claw.position.set(sx + tx, 0.03, 0.18); g.add(claw); mats.push(claw.material);
       });
     });
     g.userData.top = 2.45;
@@ -1683,18 +1690,22 @@ const Scene3D = (() => {
     const col = new THREE.Color(DB.ELEMENTS[species.el].color).getHex();
     const tier = Math.min(5, species.rank);
     const g = new THREE.Group();
+    // 土台の小さな結晶ベース（地面に接する）
+    const base = new THREE.Mesh(new THREE.ConeGeometry(0.45, 0.4, 6),
+      mat(mix(col, 0x000000, 0.3), { flat: true, rough: 0.4, metal: 0.5 }));
+    base.position.y = 0.2; g.add(base); mats.push(base.material);
     // メインの結晶体
     const core = new THREE.Mesh(new THREE.OctahedronGeometry(0.85, 0),
       mat(col, { flat: true, rough: 0.15, metal: 0.65, opacity: 0.92,
         emissive: col, emissiveIntensity: 0.6 }));
-    core.position.y = 1.15; g.add(core); mats.push(core.material);
+    core.position.y = 1.05; g.add(core); mats.push(core.material);
     // 周囲の小さな結晶
     for (let i = 0; i < 6; i++) {
       const a = (i / 6) * Math.PI * 2;
       const cr = new THREE.Mesh(new THREE.OctahedronGeometry(0.22, 0),
         mat(mix(col, 0xffffff, 0.3), { flat: true, rough: 0.18, metal: 0.55,
           emissive: col, emissiveIntensity: 0.5 }));
-      cr.position.set(Math.cos(a) * 0.7, 0.6 + (i % 2) * 0.3, Math.sin(a) * 0.7);
+      cr.position.set(Math.cos(a) * 0.7, 0.55 + (i % 2) * 0.35, Math.sin(a) * 0.7);
       cr.rotation.set(Math.random() * 6.28, Math.random() * 6.28, Math.random() * 6.28);
       g.add(cr); mats.push(cr.material);
       decos.push({ obj: cr, kind: 'spin', axis: ['x', 'y', 'z'][i % 3], speed: 0.5 });
@@ -1703,9 +1714,9 @@ const Scene3D = (() => {
     [-0.18, 0.18].forEach(sx => {
       const e = new THREE.Mesh(new THREE.SphereGeometry(0.1, 12, 12),
         mat(0xffffff, { flat: false, emissive: 0xffffff, emissiveIntensity: 1.2, outline: false }));
-      e.position.set(sx, 1.25, 0.7); g.add(e); mats.push(e.material);
+      e.position.set(sx, 1.15, 0.7); g.add(e); mats.push(e.material);
     });
-    g.userData.top = 2.05;
+    g.userData.top = 1.95;
     return g;
   }
 
