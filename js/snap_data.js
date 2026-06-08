@@ -1,12 +1,7 @@
 /* =========================================================================
- *  snap_data.js  —  モンスター・スナップ用 カードデータ
+ *  snap_data.js  —  モンスター・スナップ カードデータ（25種類の バランス能力）
  *
- *  既存の DB.species (157種) に Snap 用パラメータを付与:
- *    - cost    エネルギーコスト
- *    - pow     基本POW
- *    - ability 能力ID（snap_engine.js で解釈）
- *
- *  rank → cost/pow の標準マッピング:
+ *  rank → cost/pow:
  *    rank 1 → cost 1, pow 2
  *    rank 2 → cost 2, pow 3
  *    rank 3 → cost 3, pow 5
@@ -15,12 +10,18 @@
  *    rank 6 → cost 6, pow 11
  *    rank 7 → cost 6, pow 13
  *
- *  特殊能力を持つカードは pow を控えめに、能力で差別化。
+ *  能力 25種類（バトルなし版、純粋な POW 比較）:
+ *    onReveal:   slime_buff / angel_bless / rank_up / devil_strike / dragon_burn /
+ *                heal_draw / bird_fly / swap_lane / chain_buff / elemental_boost /
+ *                summon / copy_strongest
+ *    ongoing:    ongoing_aura / titan_boost / light_aura / gang_up /
+ *                lone_warrior / underdog / last_stand / shield
+ *    endOfTurn:  growth / regen / drain
+ *    onDestroyed: phoenix_revive / explode
  * =======================================================================*/
 
 const SnapData = (() => {
 
-  // 標準コスト/POW
   const RANK_TABLE = {
     1: { cost: 1, pow: 2 },
     2: { cost: 2, pow: 3 },
@@ -31,135 +32,140 @@ const SnapData = (() => {
     7: { cost: 6, pow: 13 },
   };
 
-  // 能力定義（snap_engine.js で実装）
-  // key: ability ID, value: { text, type, ... }
   const ABILITIES = {
-    // ----- On Reveal -----
     none:           { text: '',                                       type: 'none' },
-    slime_buff:     { text: 'プレイ時: 同レーンの味方 +1 POW',         type: 'onReveal' },
-    metal_dodge:    { text: '能力で破壊・弱体化されない',              type: 'ongoing' },
-    bird_fly:       { text: 'プレイ時: 別のレーンへ移動',              type: 'onReveal' },
-    angel_bless:    { text: 'プレイ時: 全レーンの味方 +1 POW',         type: 'onReveal' },
-    devil_strike:   { text: 'プレイ時: 相手の最弱カードを破壊',         type: 'onReveal' },
-    dragon_burn:    { text: 'プレイ時: 同レーンの敵 -2 POW',          type: 'onReveal' },
-    heal_draw:      { text: 'プレイ時: 手札に1枚追加',                 type: 'onReveal' },
-    fusion_call:    { text: 'プレイ時: 同レーン同系統と合体 +4 POW',   type: 'onReveal' },
-    rank_up:        { text: 'プレイ時: 同レーンの味方の POW を 1.5倍', type: 'onReveal' },
 
-    // ----- Ongoing -----
-    ongoing_aura:   { text: '永続: 同レーンの味方 +1 POW',             type: 'ongoing' },
-    titan_boost:    { text: '永続: 全レーンの味方 +2 POW',             type: 'ongoing' },
-    golem_shield:   { text: '永続: 破壊されない',                     type: 'ongoing' },
-    light_aura:     { text: '永続: 同レーンの敵 -1 POW',               type: 'ongoing' },
+    // ===== onReveal =====
+    slime_buff:     { text: 'プレイ時: 同レーン味方 +1 POW',            type: 'onReveal' },
+    angel_bless:    { text: 'プレイ時: 全レーン味方 +1 POW',            type: 'onReveal' },
+    rank_up:        { text: 'プレイ時: 同レーン他味方の POW を ×1.5',   type: 'onReveal' },
+    devil_strike:   { text: 'プレイ時: 敵 最弱カードを 破壊',           type: 'onReveal' },
+    dragon_burn:    { text: 'プレイ時: 同レーン敵 -2 POW',             type: 'onReveal' },
+    heal_draw:      { text: 'プレイ時: 山札から +1 ドロー',             type: 'onReveal' },
+    bird_fly:       { text: 'プレイ時: 最も劣勢なレーンへ 移動',         type: 'onReveal' },
+    swap_lane:      { text: 'プレイ時: 敵が 一番強い レーンへ ワープ',   type: 'onReveal' },
+    chain_buff:     { text: 'プレイ時: 全味方の 同系統 +2 POW',         type: 'onReveal' },
+    elemental_boost:{ text: 'プレイ時: 全味方の 同属性 +2 POW',         type: 'onReveal' },
+    summon:         { text: 'プレイ時: 同レーンに 使い魔(2POW) を 召喚', type: 'onReveal' },
+    copy_strongest: { text: 'プレイ時: 同レーン最強味方の POW を コピー', type: 'onReveal' },
 
-    // ----- End of turn -----
-    growth:         { text: '毎ターン: 自分の POW +1',                type: 'endOfTurn' },
-    regen:          { text: '毎ターン: 同レーンの味方 POW +1',         type: 'endOfTurn' },
-    drain:          { text: '毎ターン: 同レーンの敵 -1 POW',          type: 'endOfTurn' },
-    heal_self:      { text: '毎ターン: 自分の HP 全回復',              type: 'endOfTurn' },
-    heal_lane:      { text: '毎ターン: 同レーン味方の HP +3',          type: 'endOfTurn' },
+    // ===== ongoing =====
+    ongoing_aura:   { text: '永続: 同レーン味方 +1 POW',               type: 'ongoing' },
+    titan_boost:    { text: '永続: 全レーン味方 +2 POW',               type: 'ongoing' },
+    light_aura:     { text: '永続: 同レーン敵 -1 POW',                 type: 'ongoing' },
+    gang_up:        { text: '同レーン仲間 1体 ごとに +1 POW',           type: 'ongoing' },
+    lone_warrior:   { text: '同レーン自分のみで +5 POW',                type: 'ongoing' },
+    underdog:       { text: '同レーンが 負けてれば +4 POW',             type: 'ongoing' },
+    last_stand:     { text: '最終ターン に +6 POW',                    type: 'ongoing' },
+    shield:         { text: '能力で 破壊・弱体化されない',              type: 'ongoing' },
 
-    // ----- On destroyed -----
-    phoenix_revive: { text: '破壊時: 次ターンに復活',                  type: 'onDestroyed' },
-    explode:        { text: '破壊時: 同レーンの敵全体 -3 POW',         type: 'onDestroyed' },
-    death_curse:    { text: '破壊時: 同レーンの敵全体 HP -5',          type: 'onDestroyed' },
+    // ===== endOfTurn =====
+    growth:         { text: '毎ターン: 自分の POW +1',                 type: 'endOfTurn' },
+    regen:          { text: '毎ターン: 同レーン他味方 +1 POW',           type: 'endOfTurn' },
+    drain:          { text: '毎ターン: 同レーン敵 -1 POW',              type: 'endOfTurn' },
 
-    // ----- バトル系（新規） -----
-    shield:         { text: '受けるダメージを 半減',                  type: 'ongoing' },
-    berserker:      { text: 'HP半分以下で +3 POW',                    type: 'ongoing' },
-    lifesteal:      { text: 'バトル後: 与えたダメージで 自分のHP回復', type: 'onBattle' },
-    pierce:         { text: 'バトル時: 相手のシールド無視・追加+2 DMG', type: 'onBattle' },
-    double_strike: { text: 'バトル時: ダメージ2回 与える',            type: 'onBattle' },
-
-    // ----- 新 onReveal -----
-    summon:         { text: 'プレイ時: 同レーンに 2POW のトークン召喚', type: 'onReveal' },
-    draw_2:         { text: 'プレイ時: 手札に2枚追加',                type: 'onReveal' },
-    bounce_enemy:   { text: 'プレイ時: 同レーン敵を 手札に戻す',       type: 'onReveal' },
-    copy_strongest: { text: 'プレイ時: 同レーン最強の味方の POW を コピー', type: 'onReveal' },
-    swap_lane:      { text: 'プレイ時: 同レーンの味方と 位置交換',     type: 'onReveal' },
-    chain_buff:     { text: 'プレイ時: 同系統の味方 全レーン +2 POW', type: 'onReveal' },
-    elemental_boost:{ text: 'プレイ時: 同属性の味方 +2 POW',           type: 'onReveal' },
+    // ===== onDestroyed =====
+    phoenix_revive: { text: '破壊時: 次ターン 復活 (-2 POW)',           type: 'onDestroyed' },
+    explode:        { text: '破壊時: 同レーン敵 -3 POW',                type: 'onDestroyed' },
   };
 
-  // ----- 系統ごとに能力を割り当てる ----- //
-  // FAMILY_ABILITY[family][tier-1] = abilityID
-  // tier = species.rank (1〜5)。神/巨神/オリジンは別途。
+  // 系統 × tier(1-5) → 能力ID
   const FAMILY_ABILITY = {
-    sla: ['slime_buff', 'slime_buff', 'summon',      'rank_up',    'chain_buff'],
-    bea: ['none',       'berserker',  'dragon_burn', 'double_strike','titan_boost'],
-    bir: ['bird_fly',   'bird_fly',   'bird_fly',    'pierce',     'pierce'],
-    pla: ['heal_draw',  'heal_lane',  'regen',       'heal_lane',  'regen'],
-    bug: ['summon',     'explode',    'explode',     'drain',      'death_curse'],
-    und: ['none',       'phoenix_revive', 'death_curse', 'drain', 'phoenix_revive'],
-    aqu: ['none',       'heal_self',  'growth',      'lifesteal',  'rank_up'],
-    dra: ['none',       'growth',     'dragon_burn', 'double_strike','titan_boost'],
-    dev: ['devil_strike','devil_strike','lifesteal','devil_strike','devil_strike'],
-    mat: ['golem_shield','golem_shield','shield','golem_shield','golem_shield'],
-    ifr: ['dragon_burn','dragon_burn','pierce',    'explode',    'death_curse'],
-    ice: ['drain',      'drain',      'bounce_enemy','drain',     'drain'],
-    thu: ['none',       'double_strike','growth',   'pierce',     'rank_up'],
-    lig: ['heal_draw',  'angel_bless','angel_bless', 'angel_bless','angel_bless'],
-    uni: ['heal_self',  'growth',     'angel_bless', 'rank_up',    'rank_up'],
-    mus: ['heal_draw',  'regen',      'heal_lane',   'regen',      'heal_lane'],
-    gho: ['none',       'phoenix_revive','death_curse','phoenix_revive','phoenix_revive'],
-    roc: ['golem_shield','shield','golem_shield','ongoing_aura','golem_shield'],
-    win: ['bird_fly',   'bounce_enemy','bird_fly',  'bird_fly',   'angel_bless'],
-    ser: ['growth',     'lifesteal',  'growth',      'growth',     'titan_boost'],
-    dmn: ['devil_strike','dragon_burn','lifesteal','dragon_burn','devil_strike'],
-    fay: ['heal_draw',  'draw_2',     'angel_bless', 'angel_bless','angel_bless'],
-    tur: ['golem_shield','shield','golem_shield','golem_shield','golem_shield'],
-    cat: ['none',       'copy_strongest','growth',   'swap_lane', 'rank_up'],
-    stb: ['golem_shield','shield','bird_fly',  'bird_fly',   'golem_shield'],
-    anu: ['light_aura', 'light_aura', 'elemental_boost', 'angel_bless','titan_boost'],
-    mtl: ['metal_dodge','metal_dodge','shield', 'metal_dodge','metal_dodge'],
-    jwl: ['ongoing_aura','ongoing_aura','copy_strongest','rank_up','rank_up'],
+    // スライム: 仲間を 強化
+    sla: ['slime_buff', 'slime_buff', 'rank_up',    'chain_buff',     'rank_up'],
+    // けもの: 成長と 群れ
+    bea: ['growth',     'gang_up',    'growth',     'last_stand',     'titan_boost'],
+    // とり: 機動
+    bir: ['bird_fly',   'bird_fly',   'bird_fly',   'bird_fly',       'bird_fly'],
+    // しょくぶつ: 回復と ドロー
+    pla: ['heal_draw',  'regen',      'regen',      'regen',          'angel_bless'],
+    // むし: 群れと 爆発
+    bug: ['summon',     'slime_buff', 'gang_up',    'drain',          'explode'],
+    // アンデッド: 復活
+    und: ['growth',     'phoenix_revive','phoenix_revive','drain',    'phoenix_revive'],
+    // すいせい: 安定成長
+    aqu: ['growth',     'drain',      'growth',     'copy_strongest', 'rank_up'],
+    // ドラゴン: 火力
+    dra: ['dragon_burn','growth',     'dragon_burn','dragon_burn',    'titan_boost'],
+    // あくま: 破壊
+    dev: ['devil_strike','devil_strike','devil_strike','devil_strike','devil_strike'],
+    // こうぶつ: 防御
+    mat: ['shield',     'shield',     'shield',     'shield',         'shield'],
+    // ほのお: 火力と 爆発
+    ifr: ['dragon_burn','dragon_burn','explode',    'dragon_burn',    'explode'],
+    // こおり: 凍結
+    ice: ['drain',      'drain',      'dragon_burn','drain',          'drain'],
+    // いかずち: 急襲と 覚醒
+    thu: ['growth',     'growth',     'last_stand', 'rank_up',        'rank_up'],
+    // ひかり: 全体支援
+    lig: ['heal_draw',  'angel_bless','angel_bless','angel_bless',    'angel_bless'],
+    // せいじゅう: 神聖
+    uni: ['growth',     'growth',     'angel_bless','rank_up',        'rank_up'],
+    // きのこ: 持続回復
+    mus: ['heal_draw',  'regen',      'regen',      'regen',          'regen'],
+    // ゆうれい: 不滅
+    gho: ['growth',     'phoenix_revive','phoenix_revive','phoenix_revive','phoenix_revive'],
+    // がんせき: 鉄壁
+    roc: ['shield',     'shield',     'ongoing_aura','shield',        'shield'],
+    // かぜ: 機動
+    win: ['bird_fly',   'bird_fly',   'bird_fly',   'swap_lane',      'bird_fly'],
+    // うみへび: 成長
+    ser: ['growth',     'growth',     'growth',     'growth',         'titan_boost'],
+    // まじん: 破壊と 火力
+    dmn: ['devil_strike','dragon_burn','devil_strike','devil_strike', 'devil_strike'],
+    // ようせい: 支援
+    fay: ['heal_draw',  'heal_draw',  'angel_bless','angel_bless',    'angel_bless'],
+    // かいじゅう: 防御
+    tur: ['shield',     'shield',     'shield',     'shield',         'shield'],
+    // ねこ: 多様
+    cat: ['gang_up',    'copy_strongest','growth',  'lone_warrior',   'rank_up'],
+    // いしどり: 守と 機動
+    stb: ['shield',     'shield',     'bird_fly',   'bird_fly',       'shield'],
+    // せいりゅう: 光と 強化
+    anu: ['light_aura', 'light_aura', 'elemental_boost','angel_bless','titan_boost'],
+    // こうぶつ動: 防御
+    mtl: ['shield',     'shield',     'shield',     'shield',         'shield'],
+    // ほうせき: コピー
+    jwl: ['ongoing_aura','ongoing_aura','copy_strongest','rank_up',   'rank_up'],
   };
 
-  // 神/巨神/オリジンの能力
   const SPECIAL_ABILITY = {
-    god:   'titan_boost',     // 属性神
-    titan: 'titan_boost',     // 巨神
-    origin:'angel_bless',     // オリジン（全体強化）
+    god:   'titan_boost',
+    titan: 'titan_boost',
+    origin:'angel_bless',
   };
 
-  // 能力を持つカードはベース POW を下げる（バランス）
-  // ability -> pow adjustment
+  // 能力ごとの POW 調整（強い能力ほど 控えめ POW）
   const POW_ADJUST = {
     none: 0,
-    slime_buff: -1,
-    metal_dodge: 0,
-    bird_fly: 0,
+    // 強(-2)
     angel_bless: -2,
+    titan_boost: -2,
+    copy_strongest: -2,
+    last_stand: -2,
+    // 中(-1)
+    slime_buff: -1,
+    rank_up: -1,
     devil_strike: -1,
     dragon_burn: -1,
     heal_draw: -1,
-    fusion_call: -1,
-    rank_up: -1,
+    chain_buff: -1,
+    elemental_boost: -1,
     ongoing_aura: -1,
-    titan_boost: -2,
-    golem_shield: -1,
     light_aura: -1,
     growth: -1,
     regen: -1,
     drain: -1,
-    phoenix_revive: -1,
     explode: -1,
-    // 新追加
+    phoenix_revive: -1,
     shield: -1,
-    berserker: 0,
-    lifesteal: -1,
-    pierce: 0,
-    double_strike: -1,
     summon: -1,
-    draw_2: -2,
-    bounce_enemy: -1,
-    copy_strongest: -2,
+    underdog: -1,
+    // 弱・条件付(0)
+    bird_fly: 0,
     swap_lane: 0,
-    chain_buff: -1,
-    elemental_boost: -1,
-    heal_self: 0,
-    heal_lane: -1,
-    death_curse: -1,
+    gang_up: 0,
+    lone_warrior: 0,
   };
 
   // 既存 species → snap card 変換
@@ -186,7 +192,7 @@ const SnapData = (() => {
         emoji: sp.emoji,
         art: id,
         cost: base.cost,
-        pow: base.pow + powAdj,
+        pow: Math.max(1, base.pow + powAdj),
         el: sp.el || 'none',
         family: sp.family,
         rank: sp.rank,
@@ -207,12 +213,12 @@ const SnapData = (() => {
     return buildCards();
   }
 
-  // スターターデッキ（12枚）: 図鑑が空でも遊べるよう既定セット
+  // スターターデッキ（12枚）
   function starterDeck() {
     return [
-      'sla1', 'bea1', 'bir1', 'pla1', 'cat1', 'mus1',  // スターター6
-      'sla2', 'bea2', 'bir2', 'pla2',                   // tier 2
-      'sla3', 'dra1',                                    // 切り札
+      'sla1', 'bea1', 'bir1', 'pla1', 'cat1', 'mus1',
+      'sla2', 'bea2', 'bir2', 'pla2',
+      'sla3', 'dra1',
     ];
   }
 

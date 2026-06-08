@@ -1,138 +1,176 @@
 /* =========================================================================
- *  snap.css  —  モンスター・スナップ用スタイル
+ *  snap.css  —  モンスター・スナップ スタイル
+ *  目標: 縦持ち スマホで 3レーン スクロール無しで 全て表示
  * =======================================================================*/
 
 .snap-screen {
-  min-height: 100vh;
+  height: 100vh;
+  height: 100dvh;
+  max-height: 100vh;
+  max-height: 100dvh;
   background: linear-gradient(180deg, #0f1428 0%, #1a1f3a 60%, #0c0f1a 100%);
-  padding: env(safe-area-inset-top, 8px) 6px env(safe-area-inset-bottom, 8px);
+  padding: env(safe-area-inset-top, 6px) 6px env(safe-area-inset-bottom, 6px);
   display: flex;
   flex-direction: column;
-  gap: 6px;
+  gap: 4px;
   color: var(--text);
   position: relative;
+  overflow: hidden;
+  box-sizing: border-box;
 }
 
 /* ===== トップ ===== */
 .snap-top {
   display: flex;
   align-items: center;
-  gap: 8px;
-  padding: 4px 6px;
+  gap: 6px;
+  padding: 2px 4px;
+  flex-shrink: 0;
+  height: 38px;
 }
 .snap-back {
   background: var(--panel); border: 1px solid var(--line);
-  color: var(--text); border-radius: 10px;
-  width: 36px; height: 36px; font-size: 18px; cursor: pointer;
+  color: var(--text); border-radius: 8px;
+  width: 32px; height: 32px; font-size: 16px; cursor: pointer;
+  flex-shrink: 0;
 }
 .snap-info {
-  flex: 1; display: flex; gap: 12px; align-items: center; justify-content: center;
-  font-size: 13px; font-weight: 700;
+  flex: 1; display: flex; gap: 10px; align-items: center; justify-content: center;
+  font-size: 12px; font-weight: 700;
 }
 .snap-turn { color: var(--gold); }
 .snap-energy { color: #7fb3ff; }
-.snap-energy b { font-size: 18px; color: #aedaff; }
+.snap-energy b { font-size: 16px; color: #aedaff; }
+.snap-bet-info {
+  background: #ffd23d22;
+  border: 1px solid #ffd23d88;
+  color: #ffd23d;
+  padding: 1px 6px;
+  border-radius: 6px;
+  font-weight: 800;
+  font-size: 11px;
+}
 .snap-snap-btn {
   background: linear-gradient(180deg, #ff5a5a, #c43030);
   color: white; border: 2px solid #ffd23d;
-  padding: 6px 14px; border-radius: 14px;
-  font-weight: 900; font-size: 14px;
-  box-shadow: 0 0 12px #ffd23d88;
+  padding: 4px 10px; border-radius: 12px;
+  font-weight: 900; font-size: 12px;
+  box-shadow: 0 0 10px #ffd23d88;
   animation: snapPulse 1.5s ease-in-out infinite;
   cursor: pointer;
+  flex-shrink: 0;
 }
 .snap-snap-btn:active { transform: scale(.95); }
-@keyframes snapPulse { 50% { box-shadow: 0 0 18px #ffd23dcc; } }
+@keyframes snapPulse { 50% { box-shadow: 0 0 16px #ffd23dcc; } }
+.snap-bet {
+  background: linear-gradient(180deg, #ffd23d, #b07e10);
+  color: #0c0f17;
+  padding: 4px 10px;
+  border-radius: 12px;
+  font-weight: 900;
+  font-size: 12px;
+  border: 2px solid #fff;
+}
+.snap-retreat {
+  background: linear-gradient(180deg, #888, #555);
+  color: white;
+  border: 2px solid #aaa;
+  padding: 3px 8px;
+  border-radius: 8px;
+  font-weight: 700;
+  font-size: 11px;
+  margin-right: 2px;
+  cursor: pointer;
+  flex-shrink: 0;
+}
+.snap-retreat:active { transform: scale(.95); }
 
-/* ===== 盤面（縦積みレーン） ===== */
+/* ===== 盤面（縦3レーン） ===== */
 .snap-board {
   display: flex;
   flex-direction: column;
-  gap: 6px;
+  gap: 4px;
   flex: 1;
+  min-height: 0;
 }
 .lane-strip {
+  flex: 1;
+  min-height: 0;
   background: linear-gradient(180deg, #1d2438 0%, #141828 100%);
   border: 1px solid var(--line);
-  border-radius: 12px;
-  padding: 4px 6px 6px;
+  border-radius: 10px;
+  padding: 3px 4px 4px;
   display: flex;
   flex-direction: column;
-  gap: 4px;
+  gap: 2px;
 }
 .lane-bar {
   display: flex;
   align-items: center;
-  gap: 8px;
-  font-size: 11px;
-  padding: 2px 0;
-}
-.lane-no {
-  font-weight: 900;
-  color: var(--gold);
-  background: #0008;
-  padding: 2px 6px;
-  border-radius: 6px;
-  font-size: 11px;
-  min-width: 26px;
-  text-align: center;
+  gap: 6px;
+  height: 22px;
+  flex-shrink: 0;
+  font-size: 10px;
 }
 .lane-loc {
   flex: 1;
   text-align: center;
-  font-size: 11px;
+  font-size: 10.5px;
   color: var(--text);
   background: #0a0e1d;
   border: 1px dashed var(--line);
   border-radius: 6px;
-  padding: 2px 6px;
+  padding: 1px 4px;
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
+  line-height: 18px;
 }
-.lane-loc-name { font-weight: 700; margin-right: 4px; }
-.lane-loc small { color: var(--sub); font-size: 9.5px; }
+.lane-loc-name { font-weight: 700; }
 .lane-loc.dim { opacity: 0.4; }
 .lane-pow {
   background: #0008;
-  padding: 2px 8px;
+  padding: 1px 8px;
   border-radius: 8px;
-  font-size: 12px;
+  font-size: 13px;
   font-weight: 900;
-  min-width: 44px;
+  min-width: 32px;
   text-align: center;
+  flex-shrink: 0;
+  line-height: 18px;
 }
 .lane-pow.ally-lead {
   background: linear-gradient(180deg, #ffd23d, #b07e10);
   color: #0c0f17;
-  box-shadow: 0 0 8px #ffd23dcc;
+  box-shadow: 0 0 6px #ffd23dcc;
 }
 .lane-pow.enemy-lead {
   background: linear-gradient(180deg, #ff6b6b, #aa2020);
   color: white;
-  box-shadow: 0 0 8px #ff6b6bcc;
+  box-shadow: 0 0 6px #ff6b6bcc;
 }
 
 .lane-rows {
+  flex: 1;
+  min-height: 0;
   display: flex;
   flex-direction: column;
-  gap: 4px;
+  gap: 3px;
 }
 .lane-row {
+  flex: 1;
+  min-height: 0;
   display: flex;
-  gap: 4px;
-  min-height: 92px;
+  gap: 3px;
   align-items: stretch;
 }
 .lane-row.enemy {
   flex-direction: row-reverse;
 }
 
-/* スロット */
 .snap-slot {
   flex: 1;
   min-width: 0;
-  min-height: 92px;
   display: flex;
   align-items: center;
   justify-content: center;
@@ -140,9 +178,10 @@
 .snap-slot.empty {
   background: #00000033;
   border: 1px dashed #ffffff22;
-  border-radius: 8px;
+  border-radius: 7px;
   color: var(--sub);
-  font-size: 20px;
+  font-size: 18px;
+  min-height: 50px;
 }
 .snap-slot.empty.target {
   border-color: var(--gold);
@@ -157,18 +196,20 @@
   flex: 1; min-width: 0;
   background: linear-gradient(150deg, #3a4a6e 0%, #1d2438 100%);
   border: 2px solid #fff8;
-  border-radius: 10px;
-  padding: 3px;
+  border-radius: 8px;
+  padding: 2px;
   display: flex; flex-direction: column;
   position: relative;
-  font-size: 10px;
+  font-size: 9px;
   color: #fff;
   box-shadow: 0 2px 6px #0008, inset 0 1px 0 #ffffff44;
   cursor: pointer;
   transition: transform .15s ease, box-shadow .15s ease;
+  overflow: hidden;
 }
-.lane-card { font-size: 10.5px; }
+.lane-card { font-size: 9.5px; min-height: 50px; }
 .snap-card:active { transform: scale(.96); }
+
 .snap-card.pending {
   border-color: var(--gold);
   box-shadow: 0 0 12px #ffd23d88, inset 0 1px 0 #ffffff66;
@@ -188,361 +229,88 @@
 .snap-card[data-el="light"]   { background: linear-gradient(150deg, #fff1a8, #c8a040); color: #382a10; }
 .snap-card[data-el="dark"]    { background: linear-gradient(150deg, #a06bff, #3a1888); }
 
+/* 属性グロー */
+.lane-card[data-el="fire"]    { box-shadow: 0 0 10px #ff7a3055, 0 2px 4px #0008, inset 0 1px 0 #ffffff44; }
+.lane-card[data-el="water"]   { box-shadow: 0 0 10px #5ab4ff55, 0 2px 4px #0008, inset 0 1px 0 #ffffff44; }
+.lane-card[data-el="grass"]   { box-shadow: 0 0 10px #5fd06a55, 0 2px 4px #0008, inset 0 1px 0 #ffffff44; }
+.lane-card[data-el="wind"]    { box-shadow: 0 0 10px #8ae8d055, 0 2px 4px #0008, inset 0 1px 0 #ffffff44; }
+.lane-card[data-el="earth"]   { box-shadow: 0 0 10px #c69a5b55, 0 2px 4px #0008, inset 0 1px 0 #ffffff44; }
+.lane-card[data-el="thunder"] { box-shadow: 0 0 10px #ffd23d55, 0 2px 4px #0008, inset 0 1px 0 #ffffff44; }
+.lane-card[data-el="light"]   { box-shadow: 0 0 10px #fff1a855, 0 2px 4px #0008, inset 0 1px 0 #ffffff44; }
+.lane-card[data-el="dark"]    { box-shadow: 0 0 10px #a06bff55, 0 2px 4px #0008, inset 0 1px 0 #ffffff44; }
+
 .snap-card-cost {
-  position: absolute; top: -6px; left: -4px;
+  position: absolute; top: -4px; left: -3px;
   background: #4285f4; color: white;
-  width: 22px; height: 22px; border-radius: 50%;
+  width: 18px; height: 18px; border-radius: 50%;
   display: flex; align-items: center; justify-content: center;
-  font-size: 12px; font-weight: 900;
+  font-size: 10px; font-weight: 900;
   border: 2px solid #fff;
   z-index: 2;
 }
 .snap-card-pow {
-  position: absolute; top: -6px; right: -4px;
+  position: absolute; top: -4px; right: -3px;
   background: var(--gold); color: #0c0f17;
-  min-width: 22px; height: 22px; padding: 0 4px; border-radius: 11px;
+  min-width: 18px; height: 18px; padding: 0 4px; border-radius: 9px;
   display: flex; align-items: center; justify-content: center;
-  font-size: 12px; font-weight: 900;
+  font-size: 11px; font-weight: 900;
   border: 2px solid #fff;
   z-index: 2;
 }
 .snap-card-art-wrap {
   flex: 1;
   background: #0a0d18cc;
-  border-radius: 5px;
+  border-radius: 4px;
   display: flex; align-items: center; justify-content: center;
-  margin: 8px 1px 2px;
+  margin: 6px 1px 1px;
   overflow: hidden;
-  min-height: 44px;
+  min-height: 0;
 }
-.lane-card .snap-card-art-wrap { min-height: 48px; }
 .snap-card-art {
   width: 100%; height: 100%; object-fit: contain;
 }
 .snap-card-art-emoji {
-  font-size: 30px;
+  font-size: 24px;
 }
-.lane-card .snap-card-art-emoji { font-size: 34px; }
+.lane-card .snap-card-art-emoji { font-size: 26px; }
 .snap-card-name {
   text-align: center;
-  font-size: 9px;
+  font-size: 8.5px;
   font-weight: 700;
-  padding: 1px 2px;
+  padding: 0 2px;
   text-shadow: 0 1px 0 #0008;
   overflow: hidden;
   white-space: nowrap;
   text-overflow: ellipsis;
-}
-.lane-card .snap-card-name { font-size: 10px; }
-
-/* HP バー */
-.snap-card-hp {
-  position: relative;
-  height: 8px;
-  background: #0006;
-  border-radius: 4px;
-  margin: 1px 1px 0;
-  overflow: hidden;
-}
-.snap-card-hp .hp-bar {
-  position: absolute; left: 0; top: 0; bottom: 0;
-  background: linear-gradient(180deg, #56d364, #2a8a3a);
-  transition: width .4s ease;
-}
-.snap-card-hp .hp-bar.mid { background: linear-gradient(180deg, #ffd23d, #b07e10); }
-.snap-card-hp .hp-bar.low { background: linear-gradient(180deg, #ff6b6b, #aa2020); }
-.snap-card-hp .hp-text {
-  position: absolute; left: 0; right: 0; top: 50%;
-  transform: translateY(-50%);
-  text-align: center;
-  font-size: 8px;
-  font-weight: 700;
-  color: #fff;
-  text-shadow: 0 1px 1px #000;
-  line-height: 1;
+  line-height: 1.1;
 }
 
-/* ===== 手札 ===== */
-.snap-hand {
-  display: flex;
-  gap: 5px;
-  overflow-x: auto;
-  overflow-y: hidden;
-  padding: 8px 4px 4px;
-  border-top: 1px solid var(--line);
-  -webkit-overflow-scrolling: touch;
-  min-height: 130px;
-}
-.snap-card.in-hand {
-  flex: 0 0 88px;
-  min-width: 88px;
-  height: 116px;
-  font-size: 10px;
-}
-.snap-card.in-hand .snap-card-art-wrap {
-  min-height: 50px;
-}
-.snap-card.in-hand .snap-card-art-emoji {
-  font-size: 36px;
-}
-.snap-card.in-hand .snap-card-name {
-  font-size: 9.5px;
-}
-.snap-card.in-hand.disabled {
-  opacity: 0.45;
-  cursor: not-allowed;
-  filter: grayscale(0.5);
-}
-.snap-card.in-hand.selected {
-  outline: 3px solid var(--gold);
-  outline-offset: 1px;
-  transform: translateY(-6px) scale(1.04);
-  box-shadow: 0 6px 18px #ffd23daa;
-}
-.snap-card-ability {
-  font-size: 7.5px;
-  background: #00000088;
-  padding: 1px 3px;
-  border-radius: 3px;
-  margin: 0 2px 2px;
-  line-height: 1.15;
-  text-align: center;
-}
-
-.snap-no-hand {
-  color: var(--sub);
-  text-align: center;
-  padding: 20px;
-  width: 100%;
-}
-
-/* ===== ログ ===== */
-.snap-log {
-  font-size: 11px;
-  color: var(--sub);
-  background: #0006;
-  border: 1px solid var(--line);
-  border-radius: 8px;
-  padding: 4px 8px;
-  min-height: 40px;
-  max-height: 70px;
-  overflow-y: auto;
-}
-.snap-log div {
-  padding: 1px 0;
-  border-bottom: 1px solid #ffffff11;
-}
-.snap-log div:last-child { border-bottom: none; color: var(--text); }
-
-/* ===== フッター ===== */
-.snap-foot {
-  display: flex;
-  justify-content: center;
-  padding: 4px;
-}
-.snap-end-btn {
-  background: linear-gradient(180deg, #56d364, #2a8a3a);
-  color: white;
-  border: 2px solid #ffffff44;
-  padding: 12px 32px;
-  border-radius: 14px;
-  font-size: 16px;
-  font-weight: 800;
-  cursor: pointer;
-  box-shadow: 0 4px 12px #56d36488;
-  min-width: 200px;
-}
-.snap-end-btn:active { transform: scale(.96); }
-.snap-end-btn.pass {
-  background: linear-gradient(180deg, #5b8cff, #3a64e0);
-  box-shadow: 0 4px 12px #5b8cff88;
-}
-
-/* ===== 結果画面 ===== */
-.snap-result {
-  align-items: center;
-  justify-content: center;
-  text-align: center;
-  padding: 24px;
-}
-.snap-result h1 {
-  font-size: 36px;
-  margin: 0 0 16px;
-  text-shadow: 0 4px 0 #0008;
-}
-.snap-result h1.win { color: var(--gold); }
-.snap-result h1.lose { color: #ff6b6b; }
-.snap-result h1.tie { color: var(--sub); }
-.snap-result-lanes {
-  font-size: 18px;
-  color: var(--gold);
-  font-weight: 700;
-  margin-bottom: 16px;
-}
-.snap-result-detail {
-  background: var(--panel);
-  border: 1px solid var(--line);
-  border-radius: 12px;
-  padding: 14px;
-  margin: 0 16px 24px;
-  font-size: 12.5px;
-  text-align: left;
-  width: 100%;
-  max-width: 360px;
-}
-.snap-result-lane {
-  padding: 6px 0;
-  border-bottom: 1px solid var(--line);
-}
-.snap-result-lane:last-child { border-bottom: none; }
-.snap-result-actions {
-  display: flex;
-  flex-direction: column;
-  gap: 10px;
-  width: 100%;
-  max-width: 280px;
-}
-
-/* ===== 横画面（landscape）対応 ===== */
-@media (orientation: landscape) and (max-height: 600px) {
-  .snap-screen { padding: 4px; }
-  .snap-top { padding: 2px; gap: 4px; }
-  .snap-back { width: 30px; height: 30px; font-size: 14px; }
-  .snap-info { font-size: 11px; }
-  .snap-energy b { font-size: 14px; }
-  .snap-snap-btn { padding: 4px 10px; font-size: 12px; }
-  .snap-board { flex-direction: row; gap: 4px; }
-  .lane-strip { flex: 1; padding: 2px 4px 4px; gap: 2px; }
-  .lane-bar { font-size: 10px; gap: 4px; padding: 0; }
-  .lane-loc { font-size: 9.5px; }
-  .lane-loc small { font-size: 8.5px; }
-  .lane-pow { font-size: 10px; min-width: 36px; padding: 1px 4px; }
-  .lane-rows { flex-direction: column; gap: 2px; }
-  .lane-row { min-height: 70px; gap: 2px; }
-  .snap-slot { min-height: 70px; }
-  .lane-card .snap-card-art-emoji { font-size: 24px; }
-  .lane-card .snap-card-art-wrap { min-height: 36px; }
-  .snap-card.in-hand { flex: 0 0 70px; min-width: 70px; height: 92px; }
-  .snap-card.in-hand .snap-card-art-emoji { font-size: 28px; }
-  .snap-hand { min-height: 100px; }
-  .snap-log { max-height: 40px; min-height: 24px; }
-  .snap-end-btn { padding: 8px 20px; font-size: 13px; min-width: 140px; }
-  .snap-banner.turn { padding: 12px 28px; font-size: 22px; }
-  .snap-banner.snap { padding: 12px 28px; font-size: 18px; }
-}
-
-/* ===== フェーズ表示 ===== */
-.phase-bar {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  padding: 2px 8px;
-  font-size: 11px;
-  gap: 8px;
-}
-.phase-tag {
-  font-weight: 800;
-  padding: 3px 10px;
-  border-radius: 12px;
-  font-size: 12px;
-}
-.phase-tag.deploy {
-  background: #5b8cff33;
-  color: #aedaff;
-  border: 1px solid #5b8cff88;
-}
-.phase-tag.attack {
-  background: #ff6b6b33;
-  color: #ffb3b3;
-  border: 1px solid #ff6b6b88;
-}
-.phase-hint {
-  flex: 1;
-  text-align: right;
-  font-size: 11px;
-  color: var(--sub);
-}
-
-/* 攻撃モード視覚 */
-.lane-card.attack-ready {
-  outline: 3px solid #56d364;
-  outline-offset: 2px;
-  cursor: pointer;
-  animation: readyPulse 1.4s ease-in-out infinite;
-}
-@keyframes readyPulse {
-  50% { outline-color: #aef8b0; box-shadow: 0 0 16px #56d36488; }
-}
-.lane-card.attack-selected {
-  outline: 4px solid var(--gold);
-  outline-offset: 2px;
-  transform: translateY(-4px) scale(1.05);
-  box-shadow: 0 8px 22px #ffd23daa;
-  z-index: 5;
-}
-.lane-card.attack-target {
-  outline: 3px dashed #ff6b6b;
-  outline-offset: 2px;
-  cursor: crosshair;
-  animation: targetGlow 0.8s ease-in-out infinite;
-}
-@keyframes targetGlow {
-  50% { box-shadow: 0 0 24px #ff6b6bcc; transform: scale(1.04); }
-}
-.lane-card.attacked {
-  opacity: 0.55;
-  filter: grayscale(0.7);
-}
-.lane-card.attacked::after {
-  content: '✓';
-  position: absolute;
-  top: 50%; left: 50%;
-  transform: translate(-50%, -50%);
-  font-size: 36px;
-  color: #56d364;
-  text-shadow: 0 0 8px #000, 0 0 12px #56d364;
-  pointer-events: none;
-  z-index: 4;
-}
-
-.snap-screen.phase-attack {
-  background: linear-gradient(180deg, #2a1a1f 0%, #1f1218 60%, #1a0a0e 100%);
-}
-
-.snap-end-btn.battle {
-  background: linear-gradient(180deg, #ff5a5a, #c43030);
-  border: 2px solid #ffd23d;
-  box-shadow: 0 4px 12px #ff6b6b88;
-}
-
-/* ====== カード 視覚 強化 ====== */
 /* ランク星 */
 .snap-card-stars {
   position: absolute;
-  top: 18px;
+  top: 14px;
   left: 50%;
   transform: translateX(-50%);
-  font-size: 7px;
+  font-size: 6.5px;
   color: #ffd23d;
   letter-spacing: -1px;
-  text-shadow: 0 1px 2px #000, 0 0 4px #ffd23daa;
+  text-shadow: 0 1px 2px #000, 0 0 3px #ffd23daa;
   pointer-events: none;
   z-index: 2;
   white-space: nowrap;
 }
-.lane-card .snap-card-stars { font-size: 8px; top: 20px; }
 
-/* 能力 アイコン */
+/* 能力アイコン */
 .snap-card-ability-icon {
   position: absolute;
-  bottom: 14px;
-  right: 2px;
-  font-size: 11px;
+  bottom: 12px;
+  right: 1px;
+  font-size: 10px;
   background: #0008;
   border: 1px solid #fff6;
   border-radius: 50%;
-  width: 18px;
-  height: 18px;
+  width: 16px;
+  height: 16px;
   display: flex;
   align-items: center;
   justify-content: center;
@@ -550,12 +318,10 @@
   pointer-events: none;
   text-shadow: 0 1px 1px #000;
 }
-.lane-card .snap-card-ability-icon { width: 20px; height: 20px; font-size: 12px; }
 
-/* ホロ・シマー（rank 5+） */
+/* ホロ シマー（rank 5+） */
 .snap-card.holo {
   position: relative;
-  overflow: hidden;
 }
 .snap-card.holo::before {
   content: '';
@@ -575,190 +341,185 @@
   0% { background-position: -110% -110%; }
   100% { background-position: 210% 210%; }
 }
-.snap-card.holo > * { z-index: 2; }
 
-/* 属性ごとの 外側グロー */
-.lane-card[data-el="fire"]    { box-shadow: 0 0 14px #ff7a3066, 0 2px 6px #0008, inset 0 1px 0 #ffffff44; }
-.lane-card[data-el="water"]   { box-shadow: 0 0 14px #5ab4ff66, 0 2px 6px #0008, inset 0 1px 0 #ffffff44; }
-.lane-card[data-el="grass"]   { box-shadow: 0 0 14px #5fd06a66, 0 2px 6px #0008, inset 0 1px 0 #ffffff44; }
-.lane-card[data-el="wind"]    { box-shadow: 0 0 14px #8ae8d066, 0 2px 6px #0008, inset 0 1px 0 #ffffff44; }
-.lane-card[data-el="earth"]   { box-shadow: 0 0 14px #c69a5b66, 0 2px 6px #0008, inset 0 1px 0 #ffffff44; }
-.lane-card[data-el="thunder"] { box-shadow: 0 0 14px #ffd23d66, 0 2px 6px #0008, inset 0 1px 0 #ffffff44; }
-.lane-card[data-el="light"]   { box-shadow: 0 0 14px #fff1a866, 0 2px 6px #0008, inset 0 1px 0 #ffffff44; }
-.lane-card[data-el="dark"]    { box-shadow: 0 0 14px #a06bff66, 0 2px 6px #0008, inset 0 1px 0 #ffffff44; }
-
-/* ====== 攻撃 アニメーション ====== */
-@keyframes attackPulseAlly {
-  0%   { transform: scale(1) translateY(0); }
-  35%  { transform: scale(1.18) translateY(-12px) rotate(-3deg); filter: brightness(1.4); }
-  100% { transform: scale(1) translateY(0); }
-}
-@keyframes attackPulseEnemy {
-  0%   { transform: scaleX(-1) scale(1) translateY(0); }
-  35%  { transform: scaleX(-1) scale(1.18) translateY(12px) rotate(-3deg); filter: brightness(1.4); }
-  100% { transform: scaleX(-1) scale(1) translateY(0); }
-}
-.lane-card.attacking {
-  animation: attackPulseAlly .45s cubic-bezier(.5,1.5,.5,1);
-  z-index: 10;
-}
-.lane-card.attacking.enemy-side {
-  animation: attackPulseEnemy .45s cubic-bezier(.5,1.5,.5,1);
-}
-
-@keyframes takeDamage {
-  0%, 100% { transform: translateX(0); filter: brightness(1); }
-  10%      { transform: translateX(-10px); filter: brightness(1.8); }
-  25%      { transform: translateX(10px); filter: brightness(2) sepia(0.6) hue-rotate(-30deg); }
-  40%      { transform: translateX(-8px); filter: brightness(1.5); }
-  60%      { transform: translateX(6px); filter: brightness(1.2); }
-  80%      { transform: translateX(-3px); }
-}
-.lane-card.taking-damage {
-  animation: takeDamage .55s cubic-bezier(.36,.07,.19,.97);
-  z-index: 9;
-}
-
-@keyframes cardDie {
-  0%   { transform: scale(1) rotate(0deg); opacity: 1; }
-  30%  { transform: scale(1.15) rotate(20deg); opacity: 0.95; filter: brightness(2) sepia(1) hue-rotate(-20deg); }
-  100% { transform: scale(0.1) rotate(540deg); opacity: 0; filter: brightness(0); }
-}
-.lane-card.dying {
-  animation: cardDie .8s cubic-bezier(.7,0,.84,0) forwards;
-  pointer-events: none;
-  z-index: 11;
-}
-
-/* ダメージ ポップアップ */
-.damage-popup {
-  position: fixed;
-  font-size: 36px;
-  font-weight: 900;
-  color: #ff3030;
-  text-shadow:
-    0 2px 4px #000,
-    0 0 8px #ff6b6b,
-    -2px -2px 0 #fff,
-    2px -2px 0 #fff,
-    -2px 2px 0 #fff,
-    2px 2px 0 #fff;
-  pointer-events: none;
-  z-index: 10001;
-  animation: damageFloat 1.2s ease-out forwards;
-  font-family: Arial, sans-serif;
-  transform: translateX(-50%);
-}
-@keyframes damageFloat {
-  0%   { transform: translate(-50%, 0) scale(0.4); opacity: 0; }
-  20%  { transform: translate(-50%, -8px) scale(1.4); opacity: 1; }
-  60%  { transform: translate(-50%, -40px) scale(1.1); opacity: 1; }
-  100% { transform: translate(-50%, -80px) scale(0.9); opacity: 0; }
-}
-
-/* 攻撃 スラッシュ */
-.attack-slash {
-  position: fixed;
-  width: 80px;
-  height: 80px;
-  pointer-events: none;
-  z-index: 10000;
-  transform: translate(-50%, -50%);
-  background:
-    radial-gradient(circle, #ffffff 0%, #ffd23d 30%, transparent 65%);
-  animation: slashBoom .35s ease-out forwards;
-  border-radius: 50%;
-  mix-blend-mode: screen;
-}
-@keyframes slashBoom {
-  0%   { transform: translate(-50%, -50%) scale(0.2); opacity: 0; }
-  30%  { transform: translate(-50%, -50%) scale(1.2); opacity: 1; }
-  100% { transform: translate(-50%, -50%) scale(2); opacity: 0; }
-}
-
-/* HP バー の 減少 アニメ */
-.snap-card-hp .hp-bar {
-  transition: width .5s cubic-bezier(.36,0,.66,-0.56);
-}
-
-/* ====== バナー強化 ====== */
-.snap-banner.turn::before,
-.snap-banner.snap::before {
-  content: '';
-  position: absolute;
-  inset: -20px;
-  background: radial-gradient(circle, #ffd23dcc 0%, transparent 70%);
-  z-index: -1;
-  border-radius: 50%;
-  animation: bannerPulse 1.4s ease-out;
-}
-@keyframes bannerPulse {
-  0%   { transform: scale(0.6); opacity: 0; }
-  40%  { transform: scale(1.4); opacity: 1; }
-  100% { transform: scale(2); opacity: 0; }
-}
-
-/* Snap! バナーの きらめき */
-.snap-banner.snap::after {
-  content: '✨💥✨';
-  position: absolute;
-  top: -36px;
-  left: 50%;
-  transform: translateX(-50%);
-  font-size: 24px;
-  letter-spacing: 12px;
-  animation: sparkle 1.2s ease-out;
-}
-@keyframes sparkle {
-  0%, 100% { opacity: 0; }
-  30%, 70% { opacity: 1; }
-}
-
-/* ===== アニメーション ===== */
-@keyframes cardEnter {
-  0%   { opacity: 0; transform: translateY(-20px) scale(.7); }
-  60%  { opacity: 1; transform: translateY(4px) scale(1.05); }
+/* 新規公開アニメ */
+@keyframes cardEnterTop {
+  0%   { opacity: 0; transform: translateY(-18px) scale(.85); }
+  60%  { opacity: 1; transform: translateY(3px) scale(1.04); }
   100% { opacity: 1; transform: none; }
 }
-@keyframes cardEnterFromBottom {
-  0%   { opacity: 0; transform: translateY(20px) scale(.7); }
-  60%  { opacity: 1; transform: translateY(-4px) scale(1.05); }
+@keyframes cardEnterBottom {
+  0%   { opacity: 0; transform: translateY(18px) scale(.85); }
+  60%  { opacity: 1; transform: translateY(-3px) scale(1.04); }
   100% { opacity: 1; transform: none; }
 }
 .lane-card.just-revealed {
-  animation: cardEnter .5s ease-out;
+  animation: cardEnterTop .5s ease-out;
 }
 .lane-row.ally .lane-card.just-revealed {
-  animation: cardEnterFromBottom .5s ease-out;
+  animation: cardEnterBottom .5s ease-out;
 }
 
-/* HP 減少時の フラッシュ */
-@keyframes hurtFlash {
-  0%   { box-shadow: 0 0 0 0 #ff0000ff; filter: brightness(1.4); }
-  50%  { box-shadow: 0 0 16px 4px #ff0000aa; filter: brightness(1.1); }
-  100% { box-shadow: 0 2px 6px #0008; filter: brightness(1); }
+/* ===== 手札 + ログ ===== */
+.snap-hand-wrap {
+  flex-shrink: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
 }
-.lane-card.hurt {
-  animation: hurtFlash .55s ease-out;
+.snap-log {
+  font-size: 11px;
+  color: var(--sub);
+  background: #0006;
+  border: 1px solid var(--line);
+  border-radius: 6px;
+  padding: 2px 8px;
+  height: 22px;
+  overflow: hidden;
 }
-
-/* バトル発生時の 全体フラッシュ */
-.battle-flash::after {
-  content: '';
-  position: fixed;
-  inset: 0;
-  background: radial-gradient(circle at center, #ff444466 0%, transparent 70%);
-  pointer-events: none;
-  z-index: 9998;
-  animation: battleFlash .4s ease-out;
-}
-@keyframes battleFlash {
-  0%   { opacity: 0; }
-  40%  { opacity: 1; }
-  100% { opacity: 0; }
+.snap-log div {
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
 }
 
-/* ターン・Snap バナー */
+.snap-hand {
+  display: flex;
+  gap: 4px;
+  overflow-x: auto;
+  overflow-y: hidden;
+  padding: 5px 4px 2px;
+  border-top: 1px solid var(--line);
+  -webkit-overflow-scrolling: touch;
+  height: 110px;
+}
+.snap-card.in-hand {
+  flex: 0 0 76px;
+  min-width: 76px;
+  height: 100px;
+  font-size: 9.5px;
+}
+.snap-card.in-hand .snap-card-art-wrap {
+  min-height: 32px;
+}
+.snap-card.in-hand .snap-card-art-emoji {
+  font-size: 30px;
+}
+.snap-card.in-hand .snap-card-name {
+  font-size: 9px;
+}
+.snap-card.in-hand.disabled {
+  opacity: 0.45;
+  cursor: not-allowed;
+  filter: grayscale(0.5);
+}
+.snap-card.in-hand.selected {
+  outline: 3px solid var(--gold);
+  outline-offset: 1px;
+  transform: translateY(-4px) scale(1.04);
+  box-shadow: 0 6px 14px #ffd23daa;
+}
+.snap-card-ability {
+  font-size: 7px;
+  background: #00000088;
+  padding: 1px 2px;
+  border-radius: 3px;
+  margin: 0 1px 1px;
+  line-height: 1.15;
+  text-align: center;
+}
+
+.snap-no-hand {
+  color: var(--sub);
+  text-align: center;
+  padding: 20px;
+  width: 100%;
+}
+
+/* ===== フッター ===== */
+.snap-foot {
+  display: flex;
+  justify-content: center;
+  padding: 2px;
+  flex-shrink: 0;
+}
+.snap-end-btn {
+  background: linear-gradient(180deg, #56d364, #2a8a3a);
+  color: white;
+  border: 2px solid #ffffff44;
+  padding: 8px 24px;
+  border-radius: 12px;
+  font-size: 14px;
+  font-weight: 800;
+  cursor: pointer;
+  box-shadow: 0 3px 8px #56d36488;
+  min-width: 160px;
+}
+.snap-end-btn:active { transform: scale(.96); }
+.snap-end-btn.pass {
+  background: linear-gradient(180deg, #5b8cff, #3a64e0);
+  box-shadow: 0 3px 8px #5b8cff88;
+}
+
+/* ===== 結果画面 ===== */
+.snap-result {
+  align-items: center;
+  justify-content: center;
+  text-align: center;
+  padding: 16px;
+  overflow-y: auto;
+}
+.snap-result h1 {
+  font-size: 32px;
+  margin: 0 0 12px;
+  text-shadow: 0 4px 0 #0008;
+}
+.snap-result h1.win { color: var(--gold); }
+.snap-result h1.lose { color: #ff6b6b; }
+.snap-result h1.tie { color: var(--sub); }
+.snap-result-lanes {
+  font-size: 16px;
+  color: var(--gold);
+  font-weight: 700;
+  margin-bottom: 8px;
+}
+.snap-result-bet {
+  font-size: 13px;
+  color: var(--sub);
+  margin-bottom: 12px;
+  padding: 5px 12px;
+  background: #0006;
+  border-radius: 10px;
+}
+.snap-result-bet .win { color: #56d364; font-weight: 800; }
+.snap-result-bet .lose { color: #ff6b6b; font-weight: 800; }
+.snap-result-bet .tie { color: var(--sub); }
+.snap-result-detail {
+  background: var(--panel);
+  border: 1px solid var(--line);
+  border-radius: 12px;
+  padding: 12px;
+  margin: 0 8px 16px;
+  font-size: 12px;
+  text-align: left;
+  width: 100%;
+  max-width: 360px;
+  box-sizing: border-box;
+}
+.snap-result-lane {
+  padding: 5px 0;
+  border-bottom: 1px solid var(--line);
+}
+.snap-result-lane:last-child { border-bottom: none; }
+.snap-result-actions {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  width: 100%;
+  max-width: 280px;
+}
+
+/* ===== バナー ===== */
 .snap-banner {
   position: fixed;
   left: 50%;
@@ -781,70 +542,55 @@
 .snap-banner.turn {
   background: linear-gradient(180deg, #ffd23d, #b07e10);
   color: #0c0f17;
-  padding: 18px 40px;
-  border-radius: 24px;
-  font-size: 28px;
+  padding: 16px 36px;
+  border-radius: 20px;
+  font-size: 26px;
   font-weight: 900;
   border: 4px solid #fff;
-  box-shadow: 0 0 40px #ffd23dee;
+  box-shadow: 0 0 36px #ffd23dee;
 }
-.snap-banner.turn .banner-num { font-size: 36px; margin-right: 8px; }
-.snap-banner.turn small { font-size: 16px; opacity: .8; }
+.snap-banner.turn .banner-num { font-size: 32px; margin-right: 8px; }
+.snap-banner.turn small { font-size: 14px; opacity: .8; }
 .snap-banner.snap {
   background: linear-gradient(180deg, #ff5a5a, #c43030);
   color: white;
-  padding: 18px 40px;
-  border-radius: 24px;
-  font-size: 26px;
+  padding: 16px 36px;
+  border-radius: 20px;
+  font-size: 24px;
   font-weight: 900;
   border: 4px solid #ffd23d;
-  box-shadow: 0 0 40px #ffd23dee;
+  box-shadow: 0 0 36px #ffd23dee;
   letter-spacing: 0.05em;
 }
-
-/* ===== ベット倍率表示 / 撤退ボタン ===== */
-.snap-bet-info {
-  background: #ffd23d22;
-  border: 1px solid #ffd23d88;
-  color: #ffd23d;
-  padding: 2px 8px;
-  border-radius: 8px;
-  font-weight: 800;
-  font-size: 12px;
+.snap-banner.turn::before,
+.snap-banner.snap::before {
+  content: '';
+  position: absolute;
+  inset: -20px;
+  background: radial-gradient(circle, #ffd23dcc 0%, transparent 70%);
+  z-index: -1;
+  border-radius: 50%;
+  animation: bannerPulse 1.4s ease-out;
 }
-.snap-bet {
-  background: linear-gradient(180deg, #ffd23d, #b07e10);
-  color: #0c0f17;
-  padding: 6px 14px;
-  border-radius: 14px;
-  font-weight: 900;
-  font-size: 14px;
-  border: 2px solid #fff;
+@keyframes bannerPulse {
+  0%   { transform: scale(0.6); opacity: 0; }
+  40%  { transform: scale(1.4); opacity: 1; }
+  100% { transform: scale(2); opacity: 0; }
 }
-.snap-retreat {
-  background: linear-gradient(180deg, #888, #555);
-  color: white;
-  border: 2px solid #aaa;
-  padding: 4px 10px;
-  border-radius: 10px;
-  font-weight: 700;
-  font-size: 12px;
-  margin-right: 4px;
-  cursor: pointer;
+.snap-banner.snap::after {
+  content: '✨💥✨';
+  position: absolute;
+  top: -32px;
+  left: 50%;
+  transform: translateX(-50%);
+  font-size: 22px;
+  letter-spacing: 12px;
+  animation: sparkle 1.2s ease-out;
 }
-.snap-retreat:active { transform: scale(.95); }
-
-.snap-result-bet {
-  font-size: 14px;
-  color: var(--sub);
-  margin-bottom: 14px;
-  padding: 6px 12px;
-  background: #0006;
-  border-radius: 10px;
+@keyframes sparkle {
+  0%, 100% { opacity: 0; }
+  30%, 70% { opacity: 1; }
 }
-.snap-result-bet .win { color: #56d364; font-weight: 800; }
-.snap-result-bet .lose { color: #ff6b6b; font-weight: 800; }
-.snap-result-bet .tie { color: var(--sub); }
 
 /* ===== デッキ・ビルダー ===== */
 .deck-screen {
@@ -1058,9 +804,27 @@
   border: 1px solid var(--line);
 }
 
-/* ===== 横画面のとき デッキビルダーも 縮小 ===== */
+/* 横画面 */
 @media (orientation: landscape) and (max-height: 600px) {
-  .deck-screen { padding: 4px; gap: 4px; }
+  .snap-screen { padding: 3px; gap: 3px; }
+  .snap-top { height: 32px; }
+  .snap-back { width: 28px; height: 28px; font-size: 13px; }
+  .snap-info { font-size: 11px; gap: 6px; }
+  .snap-info b { font-size: 13px; }
+  .snap-snap-btn { padding: 3px 8px; font-size: 11px; }
+  .snap-board { flex-direction: row; gap: 3px; }
+  .lane-strip { padding: 2px 3px; }
+  .lane-bar { font-size: 9px; height: 18px; gap: 4px; }
+  .lane-pow { font-size: 11px; min-width: 28px; padding: 1px 4px; }
+  .lane-rows { flex-direction: column; gap: 2px; }
+  .lane-card .snap-card-art-emoji { font-size: 22px; }
+  .snap-card.in-hand { flex: 0 0 64px; min-width: 64px; height: 86px; }
+  .snap-card.in-hand .snap-card-art-emoji { font-size: 26px; }
+  .snap-hand { height: 96px; }
+  .snap-log { height: 18px; font-size: 10px; padding: 1px 6px; }
+  .snap-end-btn { padding: 6px 16px; font-size: 12px; min-width: 130px; }
+  .snap-banner.turn { padding: 12px 24px; font-size: 20px; }
+  .snap-banner.snap { padding: 12px 24px; font-size: 18px; }
   .deck-pool { grid-template-columns: repeat(5, 1fr); }
   .deck-pool-card { min-height: 100px; font-size: 8px; }
   .deck-pool-card .snap-card-art-emoji { font-size: 18px; }

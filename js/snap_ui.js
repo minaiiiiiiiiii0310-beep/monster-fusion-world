@@ -1,17 +1,16 @@
 /* =========================================================================
- *  snap_ui.js  —  モンスター・スナップ UI
+ *  snap_ui.js  —  モンスター・スナップ UI（バトルなし版）
  *
- *  画面構成（縦持ちスマホ最適化）:
- *    上:    ターン/エネルギー/Snap
- *    中央: 3レーン（横並び、各レーンに enemy/ally スロット）
- *    下:   手札 ＋ End Turn ボタン
+ *  画面構成（縦持ち・スクロール不要）:
+ *    上:     ターン/エネルギー/Snap/おりる
+ *    中央:  3レーン（縦積み・各レーン enemy 上 / ally 下）
+ *    下:    手札 + 確定ボタン
  * =======================================================================*/
 const SnapUI = (() => {
   let root, selectedCard = null;
-  let selectedAttacker = null;     // 攻撃フェーズで選択中の 味方カード
   let onExit = null;
   let opponentName = 'CPU';
-  let mode = 'cpu';   // 'cpu' | 'online'
+  let mode = 'cpu';
 
   function start(opts) {
     onExit = opts && opts.onExit;
@@ -25,7 +24,6 @@ const SnapUI = (() => {
   }
 
   function makeEnemyDeck() {
-    // CPU 用の標準デッキ（スターター + 強カード）
     return [
       'sla1', 'bea1', 'bir1', 'cat1', 'mus1', 'pla1',
       'sla2', 'dra1', 'bea2', 'lig2',
@@ -40,108 +38,62 @@ const SnapUI = (() => {
 
     const usedEnergy = G.pending.ally.reduce((s, p) => s + p.card.cost, 0) + (G.extraCost.ally || 0);
     const remaining = G.energy.ally - usedEnergy;
-    const inAttack = G.phase === 'attack';
 
-    // Snap! ボタンの 状態判定（deploy フェーズのみ）
-    const canPlayerSnap = !G.snapped.ally && G.turn < SnapEngine.MAX_TURN && !inAttack;
+    const canPlayerSnap = !G.snapped.ally && G.turn < SnapEngine.MAX_TURN;
     const snapBtn = canPlayerSnap
       ? `<button class="snap-snap-btn" data-act="snapSnap" title="ベットを2倍">Snap!</button>`
       : `<span class="snap-bet">×${G.bet}</span>`;
 
-    // 敵が Snap 宣言済みで まだ プレイヤーが おりていない時、撤退ボタン
-    const retreatBtn = (G.snapped.enemy && !G.snapped.ally && G.turn < SnapEngine.MAX_TURN && !inAttack)
+    const retreatBtn = (G.snapped.enemy && !G.snapped.ally && G.turn < SnapEngine.MAX_TURN)
       ? `<button class="snap-retreat" data-act="snapRetreat" title="半額損失で撤退">おりる</button>`
       : '';
 
-    // 攻撃 残数
-    const attackable = countAttackable();
-
-    // フッターボタン
-    let footBtn;
-    if (inAttack) {
-      footBtn = `<button class="snap-end-btn battle" data-act="snapFinishCombat">
-        ⚔ 戦闘終了 ${attackable > 0 ? `(残り ${attackable})` : ''}
-      </button>`;
-    } else {
-      footBtn = `<button class="snap-end-btn ${G.pending.ally.length === 0 ? 'pass' : ''}" data-act="snapEndTurn">
-        ${G.pending.ally.length === 0 ? '⏭ パス' : '▶ 公開 (' + G.pending.ally.length + '枚)'}
-      </button>`;
-    }
-
-    // フェーズ表示
-    const phaseLabel = inAttack
-      ? '<span class="phase-tag attack">⚔ 戦闘フェーズ</span>'
-      : '<span class="phase-tag deploy">🎴 配置フェーズ</span>';
-
     root.innerHTML = `
-      <div class="snap-screen ${inAttack ? 'phase-attack' : 'phase-deploy'}">
+      <div class="snap-screen">
         <div class="snap-top">
           <button class="snap-back" data-act="snapExit">←</button>
           <div class="snap-info">
             <span class="snap-turn">T ${G.turn}/${SnapEngine.MAX_TURN}</span>
-            ${inAttack
-              ? ''
-              : `<span class="snap-energy" title="エネルギー">⚡ <b>${remaining}</b>/${G.energy.ally}</span>`}
-            <span class="snap-bet-info" title="ベット倍率">💰 ×${G.bet}</span>
+            <span class="snap-energy" title="エネルギー">⚡<b>${remaining}</b>/${G.energy.ally}</span>
+            <span class="snap-bet-info" title="ベット倍率">💰×${G.bet}</span>
           </div>
           ${retreatBtn}
           ${snapBtn}
-        </div>
-
-        <div class="phase-bar">${phaseLabel}
-          ${inAttack && selectedAttacker
-            ? `<span class="phase-hint">👉 同レーンの 敵を タップ</span>`
-            : inAttack
-            ? `<span class="phase-hint">⚔ 攻撃する 味方カードを タップ</span>`
-            : `<span class="phase-hint">手札 → レーン に カードを 配置</span>`}
         </div>
 
         <div class="snap-board">
           ${renderLanes()}
         </div>
 
-        <div class="snap-log">
-          ${G.log.slice(-3).map(l => `<div>${l}</div>`).join('')}
+        <div class="snap-hand-wrap">
+          <div class="snap-log">${G.log.slice(-1).map(l => `<div>${l}</div>`).join('') || '<div>&nbsp;</div>'}</div>
+          <div class="snap-hand">${renderHand()}</div>
         </div>
 
-        ${inAttack ? '' : `<div class="snap-hand">${renderHand()}</div>`}
-
         <div class="snap-foot">
-          ${footBtn}
+          <button class="snap-end-btn ${G.pending.ally.length === 0 ? 'pass' : ''}" data-act="snapEndTurn">
+            ${G.pending.ally.length === 0 ? '⏭ パス' : '✅ 確定 (' + G.pending.ally.length + '枚)'}
+          </button>
         </div>
       </div>
     `;
   }
 
-  // 攻撃可能な 味方カード数
-  function countAttackable() {
-    const G = SnapEngine.state();
-    if (!G || G.phase !== 'attack') return 0;
-    let count = 0;
-    G.board.forEach((slot, i) => {
-      if (!slot.enemy.length) return;   // 敵が いない レーンは 攻撃対象なし
-      slot.ally.forEach(c => { if (!c.attacked && c.hp > 0) count++; });
-    });
-    return count;
-  }
-
   function renderLanes() {
     const G = SnapEngine.state();
-    // 縦積み（vertical stack）でレーンを表示。各レーンが 横長 ストリップ。
     return G.board.map((lane, idx) => {
       const tot = SnapEngine.totals(idx);
       const lead = tot.ally > tot.enemy ? 'ally' : tot.enemy > tot.ally ? 'enemy' : '';
       const loc = lane.location;
       const locDisp = lane.locationRevealed
-        ? `<div class="lane-loc"><span class="lane-loc-name">${loc.name}</span> <small>${loc.desc}</small></div>`
+        ? `<div class="lane-loc"><span class="lane-loc-name">${loc.name}</span></div>`
         : `<div class="lane-loc dim">???</div>`;
       return `
         <div class="lane-strip" data-lane="${idx}">
           <div class="lane-bar">
-            <span class="lane-no">L${idx + 1}</span>
+            <span class="lane-pow ${lead === 'enemy' ? 'enemy-lead' : ''}" title="敵POW">${tot.enemy}</span>
             ${locDisp}
-            <span class="lane-pow ${lead === 'enemy' ? 'enemy-lead' : ''}" title="敵POW">敵 ${tot.enemy}</span>
-            <span class="lane-pow ${lead === 'ally' ? 'ally-lead' : ''}" title="味方POW">★ ${tot.ally}</span>
+            <span class="lane-pow ${lead === 'ally' ? 'ally-lead' : ''}" title="味方POW">${tot.ally}</span>
           </div>
           <div class="lane-rows">
             <div class="lane-row enemy">${renderSlots(lane, 'enemy', idx)}</div>
@@ -153,11 +105,9 @@ const SnapUI = (() => {
 
   function renderSlots(lane, side, laneIdx, playable = false) {
     const G = SnapEngine.state();
-    const inAttack = G.phase === 'attack';
     const maxSlots = lane.location.maxSlots || SnapEngine.SLOTS_PER_LANE;
     const placed = lane[side];
-    // pending (味方のみ、deploy フェーズ中のみ表示)
-    const pendings = (side === 'ally' && !inAttack)
+    const pendings = side === 'ally'
       ? G.pending.ally.filter(p => p.lane === laneIdx)
       : [];
     const cards = [...placed, ...pendings.map(p => ({ ...p.card, _pending: true }))];
@@ -168,12 +118,8 @@ const SnapUI = (() => {
       if (c) {
         html += renderCard(c, { side, lane: laneIdx, pending: c._pending });
       } else {
-        // 空スロット
-        // 攻撃フェーズでは ドロップ目標に ならない
-        const dropAttr = (!inAttack && playable && selectedCard)
-          ? `data-act="snapDrop" data-lane="${laneIdx}"` : '';
-        const targetCls = (!inAttack && selectedCard) ? 'target' : '';
-        html += `<div class="snap-slot empty ${targetCls}" ${dropAttr}>+</div>`;
+        const dropAttr = (playable && selectedCard) ? `data-act="snapDrop" data-lane="${laneIdx}"` : '';
+        html += `<div class="snap-slot empty ${selectedCard ? 'target' : ''}" ${dropAttr}>+</div>`;
       }
     }
     return html;
@@ -181,7 +127,6 @@ const SnapUI = (() => {
 
   function renderCard(c, opts) {
     const G = SnapEngine.state();
-    const inAttack = G.phase === 'attack';
     const pendingCls = opts.pending ? ' pending' : '';
     const sideCls = opts.side === 'enemy' ? ' enemy-side' : '';
     const justCls = (G.justRevealed || []).includes(c.uid) ? ' just-revealed' : '';
@@ -193,49 +138,20 @@ const SnapUI = (() => {
       ? Art.imgTag(c.id, c.emoji, { cls: 'snap-card-art' })
       : `<span class="snap-card-art-emoji">${c.emoji}</span>`;
 
-    // 行動の 振り分け
     let act = '';
-    let extraCls = '';
     if (opts.pending) {
       act = `data-act="snapUnplay" data-uid="${c.uid}"`;
-    } else if (inAttack) {
-      // 攻撃フェーズ
-      const enemyHasCards = G.board[opts.lane].enemy.length > 0;
-      if (opts.side === 'ally' && !c.attacked && c.hp > 0 && enemyHasCards) {
-        act = `data-act="snapAttackPick" data-uid="${c.uid}"`;
-        extraCls += ' attack-ready';
-        if (selectedAttacker && selectedAttacker.uid === c.uid) extraCls += ' attack-selected';
-      } else if (opts.side === 'ally' && c.attacked) {
-        extraCls += ' attacked';
-      } else if (opts.side === 'enemy' && selectedAttacker
-                 && selectedAttacker.lane === opts.lane && c.hp > 0) {
-        // 攻撃可能な ターゲット
-        act = `data-act="snapAttackTarget" data-uid="${c.uid}"`;
-        extraCls += ' attack-target';
-      }
     } else if (opts.side === 'ally' && !c._token) {
-      // deploy フェーズ: ホットスワップ
       act = `data-act="snapWithdraw" data-uid="${c.uid}"`;
     }
 
-    // HP バー
-    const maxHp = c.maxHp || (c.pow * 2);
-    const hp = c.hp != null ? c.hp : maxHp;
-    const hpPct = Math.max(0, Math.min(100, (hp / Math.max(1, maxHp)) * 100));
-    const hpCls = hpPct < 35 ? 'low' : hpPct < 70 ? 'mid' : 'ok';
-    const hurt = c._lastHp != null && c._lastHp > hp ? ' hurt' : '';
-    c._lastHp = hp;
-
-    // ランク星（1〜7）
     const rank = Math.min(7, Math.max(1, c.rank || 1));
     const stars = '★'.repeat(Math.min(5, rank)) + (rank > 5 ? '+' : '');
     const holoCls = rank >= 5 ? ' holo' : '';
-
-    // 能力アイコン
     const abilityIcon = abilityIconFor(c.ability);
 
     return `
-      <div class="snap-card lane-card${pendingCls}${sideCls}${justCls}${hurt}${extraCls}${holoCls}"
+      <div class="snap-card lane-card${pendingCls}${sideCls}${justCls}${holoCls}"
            data-el="${el}" data-uid="${c.uid}" ${act}>
         <div class="snap-card-cost">${c.cost}</div>
         <div class="snap-card-pow">${pow}</div>
@@ -243,28 +159,24 @@ const SnapUI = (() => {
         <div class="snap-card-art-wrap">${art}</div>
         <div class="snap-card-name">${c.name}</div>
         <div class="snap-card-stars">${stars}</div>
-        <div class="snap-card-hp">
-          <span class="hp-bar ${hpCls}" style="width:${hpPct}%"></span>
-          <span class="hp-text">${hp}/${maxHp}</span>
-        </div>
       </div>
     `;
   }
 
-  // 能力 → アイコン マッピング
   function abilityIconFor(id) {
     if (!id || id === 'none') return '';
     const map = {
       slime_buff: '⬆', rank_up: '⬆', chain_buff: '🔗', elemental_boost: '🔥',
       angel_bless: '✨', titan_boost: '💪', ongoing_aura: '🌟',
-      growth: '📈', regen: '💚', drain: '💀', heal_self: '💗', heal_lane: '💚',
-      heal_draw: '🃏', draw_2: '🎴',
+      growth: '📈', regen: '💚', drain: '💀',
+      heal_draw: '🃏',
       bird_fly: '🦋', swap_lane: '🌀',
-      devil_strike: '⚔', dragon_burn: '🔥', explode: '💥', death_curse: '☠',
-      summon: '🥚', bounce_enemy: '💨', copy_strongest: '👯',
-      golem_shield: '🛡', shield: '🛡', metal_dodge: '🛡', light_aura: '☀',
-      phoenix_revive: '🔄', berserker: '🩸', lifesteal: '🩸',
-      pierce: '🏹', double_strike: '⚔⚔',
+      devil_strike: '⚔', dragon_burn: '🔥',
+      explode: '💥', summon: '🥚',
+      copy_strongest: '👯',
+      shield: '🛡', light_aura: '☀',
+      phoenix_revive: '🔄',
+      gang_up: '👥', lone_warrior: '🗡', underdog: '🩹', last_stand: '🏆',
     };
     return map[id] || '✦';
   }
@@ -284,12 +196,18 @@ const SnapUI = (() => {
       const art = typeof Art !== 'undefined'
         ? Art.imgTag(c.id, c.emoji, { cls: 'snap-card-art' })
         : `<span class="snap-card-art-emoji">${c.emoji}</span>`;
+      const rank = Math.min(7, Math.max(1, c.rank || 1));
+      const stars = '★'.repeat(Math.min(5, rank)) + (rank > 5 ? '+' : '');
+      const holoCls = rank >= 5 ? ' holo' : '';
+      const abilityIcon = abilityIconFor(c.ability);
       return `
-        <div class="${cls.join(' ')}" data-el="${el}" ${act}>
+        <div class="${cls.join(' ')}${holoCls}" data-el="${el}" ${act}>
           <div class="snap-card-cost">${c.cost}</div>
           <div class="snap-card-pow">${c.pow}</div>
+          ${abilityIcon ? `<div class="snap-card-ability-icon">${abilityIcon}</div>` : ''}
           <div class="snap-card-art-wrap">${art}</div>
           <div class="snap-card-name">${c.name}</div>
+          <div class="snap-card-stars">${stars}</div>
           ${c.abilityText ? `<div class="snap-card-ability">${c.abilityText}</div>` : ''}
         </div>`;
     }).join('');
@@ -311,7 +229,7 @@ const SnapUI = (() => {
       let aPow = slot.ally.reduce((s, c) => s + SnapEngine.effectivePow(c, i, 'ally'), 0);
       let ePow = slot.enemy.reduce((s, c) => s + SnapEngine.effectivePow(c, i, 'enemy'), 0);
       const lead = aPow > ePow ? '★味方' : ePow > aPow ? '◆敵' : '=互角';
-      return `<div class="snap-result-lane">レーン${i + 1} (${slot.location.name}): 味方${aPow} vs 敵${ePow} ${lead}</div>`;
+      return `<div class="snap-result-lane">L${i + 1} (${slot.location.name}): 味方${aPow} vs 敵${ePow} ${lead}</div>`;
     }).join('');
     const delta = G.rankDelta || 0;
     const deltaStr = delta > 0 ? `+${delta}` : `${delta}`;
@@ -349,12 +267,12 @@ const SnapUI = (() => {
     if (typeof SoundFX !== 'undefined') SoundFX.sfx('select');
     render();
   }
+
   function dropOn(laneIdx) {
     if (!selectedCard) return;
     const res = SnapEngine.play('ally', selectedCard.uid, laneIdx);
     if (!res.ok) {
       if (typeof SoundFX !== 'undefined') SoundFX.sfx('cancel');
-      // 軽く揺らす演出（将来）
       console.warn(res.msg);
       return;
     }
@@ -362,6 +280,7 @@ const SnapUI = (() => {
     if (typeof SoundFX !== 'undefined') SoundFX.sfx('click');
     render();
   }
+
   function unplayCard(uid) {
     SnapEngine.unplay('ally', uid);
     if (typeof SoundFX !== 'undefined') SoundFX.sfx('cancel');
@@ -369,7 +288,6 @@ const SnapUI = (() => {
   }
 
   function withdrawCard(uid) {
-    // すでに公開済みの自分のカードを 手札に戻す（1エネルギー）
     if (!window.confirm(`このカードを 手札に戻しますか？\nコスト: ${SnapEngine.SWAP_FEE}⚡`)) return;
     const res = SnapEngine.withdraw('ally', uid);
     if (!res.ok) {
@@ -380,199 +298,29 @@ const SnapUI = (() => {
     if (typeof SoundFX !== 'undefined') SoundFX.sfx('cancel');
     render();
   }
+
   function endTurn() {
-    // 配置フェーズ → 公開 → 攻撃フェーズへ
     const G = SnapEngine.state();
     const cpuSnappedBefore = G.snapped.enemy;
+    const turnBefore = G.turn;
     SnapCPU.takeTurn(G);
     const cpuJustSnapped = G.snapped.enemy && !cpuSnappedBefore;
     SnapEngine.endTurn();
     selectedCard = null;
-    selectedAttacker = null;
     if (typeof SoundFX !== 'undefined') SoundFX.sfx(cpuJustSnapped ? 'crit' : 'buff');
     if (G.over) recordResult(G);
     render();
-    // CPU Snap バナー
+    // バナー演出
+    if (G.turn > turnBefore && !G.over) {
+      showTurnBanner(G.turn);
+    }
     if (cpuJustSnapped) {
       showSnapBanner(`💰 あいて Snap！ ×${G.bet}`);
       setTimeout(() => alertCpuSnap(G), 600);
     }
   }
 
-  function pickAttacker(uid) {
-    const G = SnapEngine.state();
-    if (!G || G.phase !== 'attack') return;
-    let target = null, targetLane = -1;
-    G.board.forEach((slot, i) => {
-      const c = slot.ally.find(x => x.uid === uid);
-      if (c) { target = c; targetLane = i; }
-    });
-    if (!target) return;
-    if (target.attacked || target.hp <= 0) return;
-    if (selectedAttacker && selectedAttacker.uid === uid) {
-      selectedAttacker = null;   // トグル
-    } else {
-      selectedAttacker = { uid, lane: targetLane };
-    }
-    if (typeof SoundFX !== 'undefined') SoundFX.sfx('select');
-    render();
-  }
-
-  function attackTarget(uid) {
-    const G = SnapEngine.state();
-    if (!G || G.phase !== 'attack' || !selectedAttacker) return;
-    // 攻撃前の DOM 要素を 取得
-    const attackerEl = document.querySelector(`.lane-card[data-uid="${selectedAttacker.uid}"]`);
-    const targetEl = document.querySelector(`.lane-card[data-uid="${uid}"]`);
-    const attackerSnapshot = selectedAttacker.uid;
-    const res = SnapEngine.attack('ally', selectedAttacker.uid, +uid);
-    if (!res.ok) {
-      if (typeof SoundFX !== 'undefined') SoundFX.sfx('cancel');
-      if (res.msg) console.warn(res.msg);
-      return;
-    }
-    selectedAttacker = null;
-    if (typeof SoundFX !== 'undefined') SoundFX.sfx('crit');
-    // 攻撃アニメーション
-    const targetGstate = SnapEngine.state();
-    let targetCard = null;
-    targetGstate.board.forEach(s => s.enemy.concat(s.ally).forEach(c => {
-      if (c.uid === +uid) targetCard = c;
-    }));
-    // 既に 破壊された 場合は targetCard が undefined → killed フラグ
-    const killed = !targetCard || targetCard.hp <= 0;
-    showAttackAnim(attackerEl, targetEl, res.damage || 0, killed);
-    // アニメ後に 再描画
-    setTimeout(() => render(), 600);
-  }
-
-  /* ===== CPU 順次攻撃 ===== */
-  let _cpuStepBusy = false;
-
-  function finishCombat() {
-    const G = SnapEngine.state();
-    if (!G || G.phase !== 'attack' || _cpuStepBusy) return;
-    selectedAttacker = null;
-    if (typeof SoundFX !== 'undefined') SoundFX.sfx('buff');
-    const plan = SnapEngine.planCpuAttacks();
-    if (!plan.length) {
-      // 攻撃なし → そのまま 終わる
-      finalizeRound();
-      return;
-    }
-    _cpuStepBusy = true;
-    stepCpu(plan, 0);
-  }
-
-  function stepCpu(plan, idx) {
-    if (idx >= plan.length) {
-      _cpuStepBusy = false;
-      finalizeRound();
-      return;
-    }
-    const { attackerUid, targetUid } = plan[idx];
-    const attackerEl = document.querySelector(`.lane-card[data-uid="${attackerUid}"]`);
-    const targetEl = document.querySelector(`.lane-card[data-uid="${targetUid}"]`);
-    // 攻撃 実行
-    const res = SnapEngine.attack('enemy', attackerUid, targetUid);
-    if (!res.ok) {
-      // ターゲットが すでに 破壊 等で 失敗 → スキップ
-      stepCpu(plan, idx + 1);
-      return;
-    }
-    // 破壊判定（再取得）
-    const G = SnapEngine.state();
-    let targetCard = null;
-    G.board.forEach(s => s.ally.concat(s.enemy).forEach(c => {
-      if (c.uid === targetUid) targetCard = c;
-    }));
-    const killed = !targetCard || targetCard.hp <= 0;
-    showAttackAnim(attackerEl, targetEl, res.damage || 0, killed);
-    if (typeof SoundFX !== 'undefined') SoundFX.sfx('crit');
-    setTimeout(() => {
-      render();
-      // 次の 攻撃まで 短い間隔
-      setTimeout(() => stepCpu(plan, idx + 1), 200);
-    }, 600);
-  }
-
-  function finalizeRound() {
-    const G = SnapEngine.state();
-    const turnBefore = G.turn;
-    SnapEngine.endOfRoundCleanup();
-    if (G.over) recordResult(G);
-    render();
-    if (G.turn > turnBefore && !G.over) {
-      showTurnBanner(G.turn);
-    }
-  }
-
-  /* ===== 攻撃 ビジュアル ===== */
-  function showAttackAnim(attackerEl, targetEl, damage, killed) {
-    if (attackerEl) {
-      attackerEl.classList.add('attacking');
-      setTimeout(() => attackerEl.classList.remove('attacking'), 450);
-    }
-    if (targetEl) {
-      targetEl.classList.add('taking-damage');
-      if (killed) targetEl.classList.add('dying');
-      setTimeout(() => {
-        targetEl.classList.remove('taking-damage');
-      }, 550);
-    }
-    // ダメージ ポップアップ
-    if (targetEl && damage > 0) {
-      const rect = targetEl.getBoundingClientRect();
-      const dmg = document.createElement('div');
-      dmg.className = 'damage-popup';
-      dmg.textContent = '-' + damage;
-      dmg.style.left = (rect.left + rect.width / 2) + 'px';
-      dmg.style.top = (rect.top + 8) + 'px';
-      document.body.appendChild(dmg);
-      setTimeout(() => dmg.remove(), 1200);
-    }
-    // スラッシュ エフェクト（攻撃者 → ターゲットの 中間に 短い 光）
-    if (attackerEl && targetEl) {
-      const a = attackerEl.getBoundingClientRect();
-      const t = targetEl.getBoundingClientRect();
-      const slash = document.createElement('div');
-      slash.className = 'attack-slash';
-      slash.style.left = ((a.left + a.width / 2 + t.left + t.width / 2) / 2) + 'px';
-      slash.style.top = ((a.top + a.height / 2 + t.top + t.height / 2) / 2) + 'px';
-      document.body.appendChild(slash);
-      setTimeout(() => slash.remove(), 350);
-    }
-    flashBattle();
-  }
-
-  /* ===== 演出 ===== */
-  function showTurnBanner(turn) {
-    const old = document.querySelector('.snap-banner.turn');
-    if (old) old.remove();
-    const b = document.createElement('div');
-    b.className = 'snap-banner turn';
-    b.innerHTML = `<span class="banner-num">ターン ${turn}</span><small>/ ${SnapEngine.MAX_TURN}</small>`;
-    document.body.appendChild(b);
-    setTimeout(() => b.classList.add('show'), 10);
-    setTimeout(() => b.classList.add('hide'), 900);
-    setTimeout(() => b.remove(), 1400);
-  }
-  function showSnapBanner(text) {
-    const b = document.createElement('div');
-    b.className = 'snap-banner snap';
-    b.textContent = text;
-    document.body.appendChild(b);
-    setTimeout(() => b.classList.add('show'), 10);
-    setTimeout(() => b.classList.add('hide'), 1100);
-    setTimeout(() => b.remove(), 1600);
-  }
-  function flashBattle() {
-    document.body.classList.add('battle-flash');
-    setTimeout(() => document.body.classList.remove('battle-flash'), 400);
-  }
-
   function alertCpuSnap(G) {
-    // ブラウザ標準ダイアログで案内（モバイル互換性が 高い）
     const cont = window.confirm(
       `💰 あいてが Snap！ ベット ×${G.bet} に。\n\n` +
       `OK = 続行 / キャンセル = おりる（損失 半額）`
@@ -584,14 +332,13 @@ const SnapUI = (() => {
       render();
     }
   }
+
   function restart() {
     selectedCard = null;
-    selectedAttacker = null;
     start({ onExit, mode, opponentName });
   }
   function exit() {
     selectedCard = null;
-    selectedAttacker = null;
     if (typeof onExit === 'function') onExit();
   }
   function snap() {
@@ -617,7 +364,6 @@ const SnapUI = (() => {
     render();
   }
 
-  // 勝敗を State に記録（snapWins / snapRank）
   function recordResult(G) {
     if (!State || !State.data) return;
     if (G.result === 'win') {
@@ -629,10 +375,31 @@ const SnapUI = (() => {
     State.save();
   }
 
+  /* ===== 演出 ===== */
+  function showTurnBanner(turn) {
+    const old = document.querySelector('.snap-banner.turn');
+    if (old) old.remove();
+    const b = document.createElement('div');
+    b.className = 'snap-banner turn';
+    b.innerHTML = `<span class="banner-num">ターン ${turn}</span><small>/ ${SnapEngine.MAX_TURN}</small>`;
+    document.body.appendChild(b);
+    setTimeout(() => b.classList.add('show'), 10);
+    setTimeout(() => b.classList.add('hide'), 900);
+    setTimeout(() => b.remove(), 1400);
+  }
+  function showSnapBanner(text) {
+    const b = document.createElement('div');
+    b.className = 'snap-banner snap';
+    b.textContent = text;
+    document.body.appendChild(b);
+    setTimeout(() => b.classList.add('show'), 10);
+    setTimeout(() => b.classList.add('hide'), 1100);
+    setTimeout(() => b.remove(), 1600);
+  }
+
   return {
     start, render, restart, exit,
     pickCard, dropOn, unplayCard, withdrawCard, endTurn,
-    pickAttacker, attackTarget, finishCombat,
     snap, retreat,
   };
 })();
