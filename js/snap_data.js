@@ -48,6 +48,8 @@ const SnapData = (() => {
     elemental_boost:{ text: 'プレイ時: 全味方の 同属性 +2 POW',         type: 'onReveal' },
     summon:         { text: 'プレイ時: 同レーンに 使い魔(2POW) を 召喚', type: 'onReveal' },
     copy_strongest: { text: 'プレイ時: 同レーン最強味方の POW を コピー', type: 'onReveal' },
+    draw_2:         { text: 'プレイ時: 山札から +2 ドロー',            type: 'onReveal' },
+    boost_neighbor: { text: 'プレイ時: 隣接レーンの味方 +1 POW',        type: 'onReveal' },
 
     // ===== ongoing =====
     ongoing_aura:   { text: '永続: 同レーン味方 +1 POW',               type: 'ongoing' },
@@ -57,6 +59,7 @@ const SnapData = (() => {
     lone_warrior:   { text: '同レーン自分のみで +5 POW',                type: 'ongoing' },
     underdog:       { text: '同レーンが 負けてれば +4 POW',             type: 'ongoing' },
     last_stand:     { text: '最終ターン に +6 POW',                    type: 'ongoing' },
+    late_bloomer:   { text: '中盤以降、ターンが進むほど +POW',           type: 'ongoing' },
     shield:         { text: '能力で 破壊・弱体化されない',              type: 'ongoing' },
 
     // ===== endOfTurn =====
@@ -73,8 +76,8 @@ const SnapData = (() => {
   const FAMILY_ABILITY = {
     // スライム: 仲間を 強化
     sla: ['slime_buff', 'slime_buff', 'rank_up',    'chain_buff',     'rank_up'],
-    // けもの: 成長と 群れ
-    bea: ['growth',     'gang_up',    'growth',     'last_stand',     'titan_boost'],
+    // けもの: 成長と 大器晩成
+    bea: ['growth',     'gang_up',    'late_bloomer','last_stand',    'titan_boost'],
     // とり: 機動
     bir: ['bird_fly',   'bird_fly',   'bird_fly',   'bird_fly',       'bird_fly'],
     // しょくぶつ: 回復と ドロー
@@ -107,14 +110,14 @@ const SnapData = (() => {
     gho: ['growth',     'phoenix_revive','phoenix_revive','phoenix_revive','phoenix_revive'],
     // がんせき: 鉄壁
     roc: ['shield',     'shield',     'ongoing_aura','shield',        'shield'],
-    // かぜ: 機動
-    win: ['bird_fly',   'bird_fly',   'bird_fly',   'swap_lane',      'bird_fly'],
+    // かぜ: 機動と 拡散
+    win: ['bird_fly',   'bird_fly',   'boost_neighbor','swap_lane',   'bird_fly'],
     // うみへび: 成長
     ser: ['growth',     'growth',     'growth',     'growth',         'titan_boost'],
     // まじん: 破壊と 火力
     dmn: ['devil_strike','dragon_burn','devil_strike','devil_strike', 'devil_strike'],
-    // ようせい: 支援
-    fay: ['heal_draw',  'heal_draw',  'angel_bless','angel_bless',    'angel_bless'],
+    // ようせい: 支援とドロー
+    fay: ['heal_draw',  'draw_2',     'angel_bless','angel_bless',    'angel_bless'],
     // かいじゅう: 防御
     tur: ['shield',     'shield',     'shield',     'shield',         'shield'],
     // ねこ: 多様
@@ -166,6 +169,9 @@ const SnapData = (() => {
     swap_lane: 0,
     gang_up: 0,
     lone_warrior: 0,
+    draw_2: -2,
+    boost_neighbor: -1,
+    late_bloomer: -1,
   };
 
   // 既存 species → snap card 変換
@@ -213,12 +219,17 @@ const SnapData = (() => {
     return buildCards();
   }
 
-  // スターターデッキ（12枚）
+  // スターターデッキ（16枚）
   function starterDeck() {
     return [
+      // tier 1 (cost 1, pow 2): 6枚
       'sla1', 'bea1', 'bir1', 'pla1', 'cat1', 'mus1',
-      'sla2', 'bea2', 'bir2', 'pla2',
-      'sla3', 'dra1',
+      // tier 2 (cost 2, pow 3): 5枚
+      'sla2', 'bea2', 'bir2', 'pla2', 'mus2',
+      // tier 3 (cost 3, pow 5): 3枚
+      'sla3', 'bea3', 'dra1',
+      // tier 4 (cost 4, pow 7): 2枚
+      'dra2', 'lig3',
     ];
   }
 

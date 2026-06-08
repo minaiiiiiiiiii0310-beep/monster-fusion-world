@@ -111,7 +111,7 @@ const UI = (() => {
       return;
     }
     // 保存済みデッキを 使用（無ければ スターター）
-    const deck = (State.data && State.data.snapDeck && State.data.snapDeck.length === 12)
+    const deck = (State.data && State.data.snapDeck && State.data.snapDeck.length === SnapDeck.DECK_SIZE)
       ? State.data.snapDeck.slice()
       : SnapData.starterDeck();
     let enemyDeck = null, opponentName = 'CPU';
@@ -144,7 +144,7 @@ const UI = (() => {
     showModal(`<div class="dialogue"><div class="dlg-text">🌐 あいてを さがしています…</div></div>`, true);
     try {
       // 自分のデッキを 公開
-      const myDeck = (State.data.snapDeck && State.data.snapDeck.length === 12)
+      const myDeck = (State.data.snapDeck && State.data.snapDeck.length === SnapDeck.DECK_SIZE)
         ? State.data.snapDeck
         : SnapData.starterDeck();
       await Online.publishSnapDeck(myDeck);
@@ -342,7 +342,10 @@ const UI = (() => {
     snapPick: (d) => SnapUI.pickCard(+d.uid),
     snapDrop: (d) => SnapUI.dropOn(+d.lane),
     snapUnplay: (d) => SnapUI.unplayCard(+d.uid),
+    snapCardMenu: (d) => SnapUI.showCardMenu(+d.uid, +d.lane),
     snapWithdraw: (d) => SnapUI.withdrawCard(+d.uid),
+    snapMove: (d) => SnapUI.moveCard(+d.uid, +d.lane),
+    closeCardMenu: () => SnapUI.closeCardMenu(),
     snapEndTurn: () => SnapUI.endTurn(),
     snapSnap: () => SnapUI.snap(),
     snapRetreat: () => SnapUI.retreat(),

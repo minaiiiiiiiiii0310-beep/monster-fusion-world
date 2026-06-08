@@ -25,9 +25,14 @@ const SnapUI = (() => {
 
   function makeEnemyDeck() {
     return [
+      // tier 1
       'sla1', 'bea1', 'bir1', 'cat1', 'mus1', 'pla1',
-      'sla2', 'dra1', 'bea2', 'lig2',
-      'dra2', 'dev1',
+      // tier 2
+      'sla2', 'bea2', 'lig2', 'dev1',
+      // tier 3
+      'sla3', 'dra1', 'mus3',
+      // tier 4+
+      'dra2', 'dev2', 'roc4',
     ];
   }
 
@@ -142,7 +147,7 @@ const SnapUI = (() => {
     if (opts.pending) {
       act = `data-act="snapUnplay" data-uid="${c.uid}"`;
     } else if (opts.side === 'ally' && !c._token) {
-      act = `data-act="snapWithdraw" data-uid="${c.uid}"`;
+      act = `data-act="snapCardMenu" data-uid="${c.uid}" data-lane="${opts.lane}"`;
     }
 
     const rank = Math.min(7, Math.max(1, c.rank || 1));
@@ -288,15 +293,93 @@ const SnapUI = (() => {
   }
 
   function withdrawCard(uid) {
-    if (!window.confirm(`このカードを 手札に戻しますか？\nコスト: ${SnapEngine.SWAP_FEE}⚡`)) return;
     const res = SnapEngine.withdraw('ally', uid);
     if (!res.ok) {
       if (typeof SoundFX !== 'undefined') SoundFX.sfx('cancel');
-      if (res.msg) alert(res.msg);
+      if (res.msg) toastMini(res.msg);
       return;
     }
     if (typeof SoundFX !== 'undefined') SoundFX.sfx('cancel');
+    closeCardMenu();
     render();
+  }
+
+  function moveCard(uid, laneIdx) {
+    const res = SnapEngine.moveLane('ally', uid, +laneIdx);
+    if (!res.ok) {
+      if (typeof SoundFX !== 'undefined') SoundFX.sfx('cancel');
+      if (res.msg) toastMini(res.msg);
+      return;
+    }
+    if (typeof SoundFX !== 'undefined') SoundFX.sfx('click');
+    closeCardMenu();
+    render();
+  }
+
+  /* ===== カード アクション メニュー（盤上カード タップ時） ===== */
+  function showCardMenu(uid, currentLane) {
+    closeCardMenu();
+    const G = SnapEngine.state();
+    const card = (() => {
+      for (const slot of G.board) {
+        const c = slot.ally.find(x => x.uid === uid);
+        if (c) return c;
+      }
+      return null;
+    })();
+    if (!card) return;
+    const usedEnergy = G.pending.ally.reduce((s, p) => s + p.card.cost, 0) + (G.extraCost.ally || 0);
+    const remaining = G.energy.ally - usedEnergy;
+    const canSwap = remaining >= SnapEngine.SWAP_FEE;
+    const canMove = remaining >= SnapEngine.MOVE_FEE;
+
+    const ov = document.createElement('div');
+    ov.id = 'card-menu-overlay';
+    ov.className = 'card-menu-overlay';
+    ov.innerHTML = `
+      <div class="card-menu" onclick="event.stopPropagation()">
+        <div class="cm-title">
+          <span class="cm-emoji">${card.emoji}</span>
+          ${card.name}
+          <small>L${+currentLane + 1} に 配置中</small>
+        </div>
+        <div class="cm-energy">残りエネルギー: ⚡ ${remaining}</div>
+        <button class="cm-btn ${canSwap ? '' : 'disabled'}"
+                ${canSwap ? `data-act="snapWithdraw" data-uid="${uid}"` : ''}>
+          📤 手札に 戻す <small>(${SnapEngine.SWAP_FEE}⚡)</small>
+        </button>
+        ${[0, 1, 2].map(li => {
+          if (li === +currentLane) return '';
+          const lane = G.board[li];
+          if (!lane.locationRevealed) return '';
+          const maxSlots = lane.location.maxSlots || SnapEngine.SLOTS_PER_LANE;
+          const full = lane.ally.length >= maxSlots;
+          const ok = canMove && !full;
+          return `<button class="cm-btn ${ok ? '' : 'disabled'}"
+            ${ok ? `data-act="snapMove" data-uid="${uid}" data-lane="${li}"` : ''}>
+            ➡ L${li + 1} へ移動 <small>(${SnapEngine.MOVE_FEE}⚡) ${full ? '満杯' : ''}</small>
+          </button>`;
+        }).join('')}
+        <button class="cm-btn cancel" data-act="closeCardMenu">キャンセル</button>
+      </div>
+    `;
+    ov.addEventListener('click', (e) => {
+      if (e.target === ov) closeCardMenu();
+    });
+    document.body.appendChild(ov);
+  }
+
+  function closeCardMenu() {
+    const ov = document.getElementById('card-menu-overlay');
+    if (ov) ov.remove();
+  }
+
+  function toastMini(msg) {
+    const bar = document.createElement('div');
+    bar.className = 'deck-toast';
+    bar.textContent = msg;
+    document.body.appendChild(bar);
+    setTimeout(() => bar.remove(), 1600);
   }
 
   function endTurn() {
@@ -399,7 +482,8 @@ const SnapUI = (() => {
 
   return {
     start, render, restart, exit,
-    pickCard, dropOn, unplayCard, withdrawCard, endTurn,
-    snap, retreat,
+    pickCard, dropOn, unplayCard, withdrawCard, moveCard,
+    showCardMenu, closeCardMenu,
+    endTurn, snap, retreat,
   };
 })();

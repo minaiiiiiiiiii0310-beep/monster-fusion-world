@@ -85,21 +85,22 @@
 }
 .snap-retreat:active { transform: scale(.95); }
 
-/* ===== 盤面（縦3レーン） ===== */
+/* ===== 盤面（横並び 3レーン） ===== */
 .snap-board {
   display: flex;
-  flex-direction: column;
-  gap: 4px;
+  flex-direction: row;
+  gap: 3px;
   flex: 1;
   min-height: 0;
 }
 .lane-strip {
   flex: 1;
+  min-width: 0;
   min-height: 0;
   background: linear-gradient(180deg, #1d2438 0%, #141828 100%);
   border: 1px solid var(--line);
-  border-radius: 10px;
-  padding: 3px 4px 4px;
+  border-radius: 8px;
+  padding: 2px;
   display: flex;
   flex-direction: column;
   gap: 2px;
@@ -107,47 +108,49 @@
 .lane-bar {
   display: flex;
   align-items: center;
-  gap: 6px;
-  height: 22px;
+  justify-content: space-between;
+  gap: 2px;
+  height: 18px;
   flex-shrink: 0;
-  font-size: 10px;
+  font-size: 9px;
 }
 .lane-loc {
   flex: 1;
   text-align: center;
-  font-size: 10.5px;
+  font-size: 9px;
   color: var(--text);
   background: #0a0e1d;
   border: 1px dashed var(--line);
-  border-radius: 6px;
-  padding: 1px 4px;
+  border-radius: 4px;
+  padding: 0 2px;
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
-  line-height: 18px;
+  line-height: 14px;
 }
-.lane-loc-name { font-weight: 700; }
+.lane-loc small { display: none; }   /* 省略表示（横並びで 場所がない） */
+.lane-loc-name { font-weight: 700; font-size: 9px; }
 .lane-loc.dim { opacity: 0.4; }
 .lane-pow {
   background: #0008;
-  padding: 1px 8px;
-  border-radius: 8px;
-  font-size: 13px;
+  padding: 0 5px;
+  border-radius: 6px;
+  font-size: 11px;
   font-weight: 900;
-  min-width: 32px;
+  min-width: 22px;
   text-align: center;
   flex-shrink: 0;
-  line-height: 18px;
+  line-height: 14px;
 }
 .lane-pow.ally-lead {
   background: linear-gradient(180deg, #ffd23d, #b07e10);
   color: #0c0f17;
-  box-shadow: 0 0 6px #ffd23dcc;
+  box-shadow: 0 0 4px #ffd23dcc;
 }
 .lane-pow.enemy-lead {
   background: linear-gradient(180deg, #ff6b6b, #aa2020);
   color: white;
-  box-shadow: 0 0 6px #ff6b6bcc;
+  box-shadow: 0 0 4px #ff6b6bcc;
 }
 
 .lane-rows {
@@ -155,33 +158,38 @@
   min-height: 0;
   display: flex;
   flex-direction: column;
-  gap: 3px;
+  gap: 2px;
 }
 .lane-row {
   flex: 1;
   min-height: 0;
   display: flex;
-  gap: 3px;
+  flex-direction: column;   /* カードを 縦に 積む（横並びレーン内で） */
+  gap: 2px;
   align-items: stretch;
 }
 .lane-row.enemy {
-  flex-direction: row-reverse;
+  flex-direction: column-reverse;   /* 敵カードは 上から 積み下がる */
 }
 
 .snap-slot {
   flex: 1;
   min-width: 0;
+  min-height: 0;
   display: flex;
-  align-items: center;
-  justify-content: center;
+  align-items: stretch;
+  justify-content: stretch;
 }
 .snap-slot.empty {
   background: #00000033;
   border: 1px dashed #ffffff22;
-  border-radius: 7px;
+  border-radius: 6px;
   color: var(--sub);
-  font-size: 18px;
-  min-height: 50px;
+  font-size: 14px;
+  min-height: 22px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
 }
 .snap-slot.empty.target {
   border-color: var(--gold);
@@ -207,7 +215,15 @@
   transition: transform .15s ease, box-shadow .15s ease;
   overflow: hidden;
 }
-.lane-card { font-size: 9.5px; min-height: 50px; }
+/* 盤面カード（横並び 3レーン用、横長フォーマット） */
+.lane-card {
+  font-size: 8px;
+  min-height: 0;
+  flex-direction: row;        /* 横レイアウト: アート左, 情報右 */
+  align-items: center;
+  padding: 1px 3px 1px 1px;
+  gap: 2px;
+}
 .snap-card:active { transform: scale(.96); }
 
 .snap-card.pending {
@@ -218,6 +234,10 @@
 @keyframes pendingPulse { 50% { box-shadow: 0 0 18px #ffd23dcc; } }
 .snap-card.enemy-side { transform: scaleX(-1); }
 .snap-card.enemy-side > * { transform: scaleX(-1); }
+/* 盤面の 横長カードは 反転しない（読みづらい ため） */
+.lane-card.enemy-side { transform: none; }
+.lane-card.enemy-side > * { transform: none; }
+.lane-card.enemy-side { border-color: #ff6b6b88; }
 
 /* 属性カラー */
 .snap-card[data-el="fire"]    { background: linear-gradient(150deg, #ff7a30, #c43014); }
@@ -242,18 +262,18 @@
 .snap-card-cost {
   position: absolute; top: -4px; left: -3px;
   background: #4285f4; color: white;
-  width: 18px; height: 18px; border-radius: 50%;
+  width: 16px; height: 16px; border-radius: 50%;
   display: flex; align-items: center; justify-content: center;
-  font-size: 10px; font-weight: 900;
+  font-size: 9px; font-weight: 900;
   border: 2px solid #fff;
   z-index: 2;
 }
 .snap-card-pow {
   position: absolute; top: -4px; right: -3px;
   background: var(--gold); color: #0c0f17;
-  min-width: 18px; height: 18px; padding: 0 4px; border-radius: 9px;
+  min-width: 16px; height: 16px; padding: 0 3px; border-radius: 8px;
   display: flex; align-items: center; justify-content: center;
-  font-size: 11px; font-weight: 900;
+  font-size: 10px; font-weight: 900;
   border: 2px solid #fff;
   z-index: 2;
 }
@@ -272,7 +292,15 @@
 .snap-card-art-emoji {
   font-size: 24px;
 }
-.lane-card .snap-card-art-emoji { font-size: 26px; }
+/* 盤面カード（横長）: アート部分は 左に コンパクト */
+.lane-card .snap-card-art-wrap {
+  flex: 0 0 auto;
+  width: 30px;
+  height: 30px;
+  margin: 0;
+  border-radius: 4px;
+}
+.lane-card .snap-card-art-emoji { font-size: 18px; }
 .snap-card-name {
   text-align: center;
   font-size: 8.5px;
@@ -283,6 +311,12 @@
   white-space: nowrap;
   text-overflow: ellipsis;
   line-height: 1.1;
+}
+.lane-card .snap-card-name {
+  flex: 1;
+  font-size: 8px;
+  text-align: left;
+  padding: 0 2px;
 }
 
 /* ランク星 */
@@ -298,6 +332,10 @@
   pointer-events: none;
   z-index: 2;
   white-space: nowrap;
+}
+.lane-card .snap-card-stars {
+  /* 盤面カードでは ランク星 非表示（スペース確保） */
+  display: none;
 }
 
 /* 能力アイコン */
@@ -317,6 +355,14 @@
   z-index: 3;
   pointer-events: none;
   text-shadow: 0 1px 1px #000;
+}
+.lane-card .snap-card-ability-icon {
+  bottom: auto;
+  top: 2px;
+  right: 2px;
+  width: 12px;
+  height: 12px;
+  font-size: 8px;
 }
 
 /* ホロ シマー（rank 5+） */
@@ -517,6 +563,93 @@
   gap: 8px;
   width: 100%;
   max-width: 280px;
+}
+
+/* ===== カード アクション メニュー ===== */
+.card-menu-overlay {
+  position: fixed;
+  inset: 0;
+  background: #000a;
+  z-index: 10000;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 16px;
+  animation: cmFadeIn 0.2s ease-out;
+}
+@keyframes cmFadeIn {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+.card-menu {
+  background: linear-gradient(180deg, #1d2438 0%, #141828 100%);
+  border: 2px solid var(--gold);
+  border-radius: 16px;
+  padding: 16px;
+  max-width: 320px;
+  width: 100%;
+  box-shadow: 0 8px 32px #000, 0 0 24px #ffd23d44;
+  animation: cmSlideUp 0.25s cubic-bezier(.5,1.5,.5,1);
+}
+@keyframes cmSlideUp {
+  from { transform: translateY(20px) scale(.9); opacity: 0; }
+  to   { transform: none; opacity: 1; }
+}
+.cm-title {
+  text-align: center;
+  font-size: 15px;
+  font-weight: 800;
+  color: var(--text);
+  margin-bottom: 8px;
+  border-bottom: 1px solid var(--line);
+  padding-bottom: 8px;
+}
+.cm-title .cm-emoji {
+  font-size: 22px;
+  margin-right: 6px;
+  vertical-align: middle;
+}
+.cm-title small {
+  display: block;
+  font-size: 11px;
+  color: var(--sub);
+  font-weight: 400;
+  margin-top: 4px;
+}
+.cm-energy {
+  text-align: center;
+  font-size: 12px;
+  color: #aedaff;
+  margin-bottom: 10px;
+}
+.cm-btn {
+  display: block;
+  width: 100%;
+  background: var(--panel);
+  border: 1px solid var(--line);
+  color: var(--text);
+  padding: 10px 14px;
+  border-radius: 10px;
+  font-size: 13px;
+  font-weight: 700;
+  margin: 6px 0;
+  text-align: left;
+  cursor: pointer;
+  transition: transform .1s, background .15s;
+}
+.cm-btn:not(.disabled):active { transform: scale(.97); }
+.cm-btn:not(.disabled):hover { background: #2a3450; }
+.cm-btn small { color: var(--sub); font-weight: 400; margin-left: 4px; }
+.cm-btn.disabled {
+  opacity: 0.4;
+  cursor: not-allowed;
+}
+.cm-btn.cancel {
+  background: transparent;
+  color: var(--sub);
+  border-color: transparent;
+  margin-top: 8px;
+  text-align: center;
 }
 
 /* ===== バナー ===== */

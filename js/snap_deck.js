@@ -10,7 +10,7 @@
  *    下:   全カード一覧（タップで 追加・削除）
  * =======================================================================*/
 const SnapDeck = (() => {
-  const DECK_SIZE = 12;
+  const DECK_SIZE = 16;
   let root, onExit;
   let deck = [];                          // 現在編集中のデッキ（カードID配列）
   let filterCost = 'all';

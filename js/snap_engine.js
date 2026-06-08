@@ -7,11 +7,13 @@
  *  ・バトル/HP は廃止（純粋な POW 比較ゲーム）
  * =======================================================================*/
 const SnapEngine = (() => {
-  const MAX_TURN = 6;
-  const HAND_MAX = 8;
-  const INITIAL_HAND = 5;
+  const MAX_TURN = 10;
+  const HAND_MAX = 9;
+  const INITIAL_HAND = 4;     // 4枚スタート、毎ターン 1枚 ドロー
   const SLOTS_PER_LANE = 3;
   const SWAP_FEE = 1;        // ホットスワップの 追加 エネルギー
+  const MOVE_FEE = 1;        // レーン移動の 追加 エネルギー
+  const ENERGY_CAP = 10;
 
   let G = null;
 
@@ -157,14 +159,42 @@ const SnapEngine = (() => {
       finishGame();
     } else {
       G.turn += 1;
-      G.energy.ally = G.turn;
-      G.energy.enemy = G.turn;
-      if (G.turn === 2) G.board[1].locationRevealed = true;
-      if (G.turn === 3) G.board[2].locationRevealed = true;
+      G.energy.ally = Math.min(ENERGY_CAP, G.turn);
+      G.energy.enemy = Math.min(ENERGY_CAP, G.turn);
+      // ロケーション 順次 公開（ターン 3, 5）
+      if (G.turn === 3) G.board[1].locationRevealed = true;
+      if (G.turn === 5) G.board[2].locationRevealed = true;
       drawN('ally', 1);
       drawN('enemy', 1);
     }
     return G;
+  }
+
+  /* ----- レーン移動：盤上の カードを 別レーンへ ----- */
+  function moveLane(side, cardUid, newLane) {
+    if (!G || G.over) return { ok: false };
+    let card = null, oldLane = -1, oldIdx = -1;
+    G.board.forEach((slot, i) => {
+      const idx = slot[side].findIndex(c => c.uid === cardUid);
+      if (idx >= 0) { card = slot[side][idx]; oldLane = i; oldIdx = idx; }
+    });
+    if (!card) return { ok: false, msg: '対象カードがない' };
+    if (oldLane === newLane) return { ok: false, msg: '同じレーン' };
+    const dest = G.board[newLane];
+    if (!dest) return { ok: false, msg: 'レーンが無効' };
+    if (!dest.locationRevealed) return { ok: false, msg: 'レーンが まだ 公開されてない' };
+    const maxSlots = dest.location.maxSlots || SLOTS_PER_LANE;
+    if (dest[side].length >= maxSlots) return { ok: false, msg: 'このレーンは満杯' };
+    if (dest.location.canPlace && !dest.location.canPlace(card, newLane)) {
+      return { ok: false, msg: `${dest.location.name} には置けない` };
+    }
+    const usedEnergy = G.pending[side].reduce((s, p) => s + p.card.cost, 0) + (G.extraCost[side] || 0);
+    if (usedEnergy + MOVE_FEE > G.energy[side]) return { ok: false, msg: 'エネルギー不足' };
+    G.board[oldLane][side].splice(oldIdx, 1);
+    G.board[newLane][side].push(card);
+    G.extraCost[side] = (G.extraCost[side] || 0) + MOVE_FEE;
+    G.log.push(`${side === 'ally' ? '★' : '◆'} ${card.name} → L${newLane + 1} へ移動`);
+    return { ok: true };
   }
 
   function forEachCard(fn) {
@@ -326,6 +356,20 @@ const SnapEngine = (() => {
         }
         break;
       }
+      case 'draw_2': {
+        drawN(side, 2);
+        G.log.push(`✦ ${card.name}: 2枚ドロー`);
+        break;
+      }
+      case 'boost_neighbor': {
+        let cnt = 0;
+        [lane - 1, lane + 1].forEach(li => {
+          if (li < 0 || li >= G.board.length) return;
+          G.board[li][side].forEach(c => { c.pow += 1; cnt++; });
+        });
+        if (cnt) G.log.push(`✦ ${card.name}: 隣接レーン ${cnt}体 +1 POW`);
+        break;
+      }
 
       // ===== endOfTurn =====
       case 'growth': {
@@ -416,6 +460,9 @@ const SnapEngine = (() => {
     if (card.ability === 'last_stand' && G.turn === MAX_TURN) {
       pow += 6;
     }
+    if (card.ability === 'late_bloomer') {
+      pow += Math.max(0, G.turn - 3);   // T4=+1 ... T10=+7
+    }
     // ロケーション補正
     if (slot.location.modifyPow) {
       pow += slot.location.modifyPow(card, lane, side, api());
@@ -452,14 +499,15 @@ const SnapEngine = (() => {
 
   function cpuShouldSnap() {
     if (G.snapped.enemy) return false;
-    if (G.turn < 3 || G.turn >= MAX_TURN) return false;
+    // 試合の 中盤〜後半（4ターン目以降〜最終2手前まで）に Snap 判断
+    if (G.turn < 4 || G.turn >= MAX_TURN - 1) return false;
     let winningLanes = 0, totalDiff = 0;
     G.board.forEach((slot, i) => {
       const t = totals(i);
       if (t.enemy > t.ally) winningLanes++;
       totalDiff += t.enemy - t.ally;
     });
-    return winningLanes >= 2 && totalDiff >= 5;
+    return winningLanes >= 2 && totalDiff >= 6;
   }
 
   function finishGame() {
@@ -511,8 +559,8 @@ const SnapEngine = (() => {
   }
 
   return {
-    MAX_TURN, HAND_MAX, INITIAL_HAND, SLOTS_PER_LANE, SWAP_FEE,
-    start, state, play, unplay, withdraw, endTurn,
+    MAX_TURN, HAND_MAX, INITIAL_HAND, SLOTS_PER_LANE, SWAP_FEE, MOVE_FEE,
+    start, state, play, unplay, withdraw, moveLane, endTurn,
     declareSnap, retreat, cpuShouldSnap, applyRetreatPenalty,
     effectivePow, totals, destroyCard,
   };
