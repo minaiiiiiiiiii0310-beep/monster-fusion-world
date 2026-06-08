@@ -1,0 +1,261 @@
+# ================================================================
+# Gemini (Imagen) / ImageFX 用プロンプト集（全157種）
+#
+# Gemini は自然な英文を素直に解釈するので、命令文型にする：
+# 「Create an image of ...」
+#
+# 使えるサービス:
+#   - gemini.google.com         （要 Google アカウント、画像生成は Advanced）
+#   - Google AI Studio          aistudio.google.com
+#   - ImageFX (無料)            aitestkitchen.withgoogle.com/tools/image-fx
+#
+# 使い方:
+#   1. 上記いずれかのサイトを開く
+#   2. 下のプロンプトを1つコピーして送信
+#   3. 出てきた画像から1枚選んで ダウンロード
+#   4. ファイル名を <種族ID>.png にリネーム
+#   5. assets/monsters/raw/ に入れて install-ai-art.bat を実行
+# ================================================================
+
+# 共通サフィックス（必要なら追加）:
+# "Style: chibi cartoon, anime aesthetic, bold black outlines, soft cel-shading,
+#  vibrant colors, mobile game card art. Background: transparent. Composition:
+#  full body, centered, square 1:1. No text, no watermark, no logo."
+
+# ==== スターター6 ====
+[sla1] Create an image of a tiny blue slime drop with two big sparkling eyes and a cheerful smile. Style: chibi cartoon, anime aesthetic, bold black outlines, soft cel-shading, vibrant colors. Full body, centered, transparent background, square 1:1, no text.
+[bea1] Create an image of a small brown wolf cub with sharp fangs and bright yellow eyes. Style: chibi cartoon, anime aesthetic, bold black outlines, soft cel-shading, vibrant colors. Full body, centered, transparent background, square 1:1, no text.
+[bir1] Create an image of a fluffy yellow baby chick with tiny wings and big round eyes. Style: chibi cartoon, anime aesthetic, bold black outlines, soft cel-shading, vibrant colors. Full body, centered, transparent background, square 1:1, no text.
+[pla1] Create an image of a small green mandrake plant creature with leafy hair and tiny arms. Style: chibi cartoon, anime aesthetic, bold black outlines, soft cel-shading, vibrant colors. Full body, centered, transparent background, square 1:1, no text.
+[cat1] Create an image of a cute orange tabby kitten in a playful pose. Style: chibi cartoon, anime aesthetic, bold black outlines, soft cel-shading, vibrant colors. Full body, centered, transparent background, square 1:1, no text.
+[mus1] Create an image of a red mushroom monster with white spots on its cap and a cute face on its white stem. Style: chibi cartoon, anime aesthetic, bold black outlines, soft cel-shading, vibrant colors. Full body, centered, transparent background, square 1:1, no text.
+
+# ==== サフィックス省略バージョン（短文・全157） ====
+# サフィックスは「, chibi cartoon style, anime aesthetic, bold outlines, cel-shading, vibrant colors, full body centered, transparent background, square 1:1, no text or watermark」
+# をすべての行末に補ってください。
+
+# ---- スライム sla ----
+[sla1] Create an image of a tiny blue slime drop with two big sparkling eyes and cheerful smile
+[sla2] Create an image of a medium royal blue slime with two eyes and small white horns
+[sla3] Create an image of a blue slime knight wearing silver armor and holding a small sword
+[sla4] Create an image of a large blue slime king with golden crown and majestic purple cape
+[sla5] Create an image of a divine blue slime god radiating holy light with golden halo
+
+# ---- オオカミ bea ----
+[bea1] Create an image of a small brown wolf cub with sharp fangs and yellow eyes
+[bea2] Create an image of a teen brown wolf with fierce expression in battle stance
+[bea3] Create an image of an adult gray wolf with battle scars and golden eyes
+[bea4] Create an image of a massive silver Fenrir wolf with icy blue mane and legendary aura
+[bea5] Create an image of a colossal black behemoth wolf-beast with horns and red glowing eyes
+
+# ---- 鳥 bir ----
+[bir1] Create an image of a fluffy yellow baby chick with tiny wings and big eyes
+[bir2] Create an image of a sky-blue hawk with spread wings and sharp eyes
+[bir3] Create an image of a noble griffon with lion body and eagle head and golden feathers
+[bir4] Create an image of a giant Roc bird with massive golden feathers and storm clouds
+[bir5] Create an image of a majestic divine Garuda eagle with rainbow wings and holy aura
+
+# ---- 植物 pla ----
+[pla1] Create an image of a small green mandrake plant creature with leafy hair and arms
+[pla2] Create an image of a giant red Rafflesia flower monster with eyes in the petals
+[pla3] Create an image of a wooden treant tree-man with branch arms and a bark face
+[pla4] Create an image of an ancient Elder treant with glowing green runes and thick bark
+[pla5] Create an image of a wicked dark treelord with twisted gnarled branches and red eyes
+
+# ---- 虫 bug ----
+[bug1] Create an image of a giant red warrior ant with mandibles
+[bug2] Create an image of a rhinoceros beetle with shiny iridescent carapace
+[bug3] Create an image of a death moth with a skull pattern on its wings
+[bug4] Create an image of a giant yellow hornet with a venom stinger
+[bug5] Create an image of a queen demon bee with red eyes and royal crown
+
+# ---- アンデッド und ----
+[und1] Create an image of a small skeleton with a rusty sword
+[und2] Create an image of a skeleton warrior with iron shield and helmet
+[und3] Create an image of a hooded lich with glowing purple eyes and ornate staff
+[und4] Create an image of a dark death knight in black armor with red glowing visor
+[und5] Create an image of a headless Dullahan rider holding his own head
+
+# ---- 水生 aqu ----
+[aqu1] Create an image of a cute orange koi fish with big eyes and bubbles
+[aqu2] Create an image of a merman warrior with a trident and blue fins
+[aqu3] Create an image of a young purple kraken with curling tentacles and big eyes
+[aqu4] Create an image of a massive blue Leviathan sea serpent with fins along its back
+[aqu5] Create an image of a divine sea dragon with a crown of coral and pearl scales
+
+# ---- ドラゴン dra ----
+[dra1] Create an image of a cute baby red dragon hatchling with tiny wings
+[dra2] Create an image of a teen red dragon with developing wings and fierce expression
+[dra3] Create an image of an adult red dragon dragoon with spread wings breathing fire
+[dra4] Create an image of a massive T-rex like dragon tyrant with red scales
+[dra5] Create an image of a legendary Fafnir dragon with golden scales and rainbow aura
+
+# ---- 悪魔 dev ----
+[dev1] Create an image of a small purple imp with tiny bat wings and devil horns
+[dev2] Create an image of a teen devil with curved horns and a pitchfork
+[dev3] Create an image of a demon lord Maou with massive horns and glowing red eyes
+[dev4] Create an image of an arch-demon with multiple bat wings and a dark robe
+[dev5] Create an image of the supreme devil Lucifer in dark elegance with six wings
+
+# ---- ゴーレム mat ----
+[mat1] Create an image of a small stone gargoyle with glowing eyes
+[mat2] Create an image of a rocky golem with cracks revealing a glowing core
+[mat3] Create an image of an iron golem with glowing eyes and steel plates
+[mat4] Create an image of a titanic stone titan with a crystal core glowing in its chest
+[mat5] Create an image of a colossus mountain-sized golem with ancient runes
+
+# ---- 炎の精 ifr ----
+[ifr1] Create an image of a small fire spirit shaped like a flame with eyes
+[ifr2] Create an image of a fire elemental with a body of orange flames
+[ifr3] Create an image of an inferno demon wreathed in red flames
+[ifr4] Create an image of a Vulcan god with lava cracks across stone skin
+[ifr5] Create an image of the great Ifrit king of fire with horns and burning eyes
+
+# ---- 氷ビースト ice ----
+[ice1] Create an image of a small white snow fox with icy fur
+[ice2] Create an image of a frost beast with icy blue fur and breath of cold mist
+[ice3] Create an image of an ice golem with crystal armor and a frosty aura
+[ice4] Create an image of a frost giant with a massive ice club and white beard
+[ice5] Create an image of the giant Jotunn lord of ice with horns of frost
+
+# ---- 雷獣 thu ----
+[thu1] Create an image of a small electric mouse-like creature with a lightning tail
+[thu2] Create an image of a lightning fox with crackling yellow fur
+[thu3] Create an image of a thunder beast with a mane of lightning sparks
+[thu4] Create an image of the Japanese thunder god Raijin holding drums of thunder
+[thu5] Create an image of the mighty Thor with hammer Mjolnir and lightning
+
+# ---- 天使 lig ----
+[lig1] Create an image of a tiny pixie with butterfly wings and a magic wand
+[lig2] Create an image of a kind angel with white robe and golden halo
+[lig3] Create an image of a seraph with six glowing wings and a flaming sword
+[lig4] Create an image of an archangel in golden armor with massive white wings
+[lig5] Create an image of Metatron supreme angel of light with cosmic robes
+
+# ---- ユニコーン uni ----
+[uni1] Create an image of a young white unicorn pony with a pastel mane
+[uni2] Create an image of a noble pegasus with feathered wings spread
+[uni3] Create an image of a Kirin Asian unicorn with golden scales and flowing mane
+[uni4] Create an image of an albino royal unicorn with golden horn and silver hooves
+[uni5] Create an image of a holy divine unicorn radiating pure white light
+
+# ---- キノコ mus ----
+[mus1] Create an image of a red mushroom monster with white spots and a cute face on the stem
+[mus2] Create an image of a mushroom warrior with arms and a red cap shield
+[mus3] Create an image of a giant mushroom with multiple eyes on the cap
+[mus4] Create an image of a spore mushroom releasing magic dust clouds
+[mus5] Create an image of the mushroom king Mycelion with a cap crown and royal cape
+
+# ---- ゴースト gho ----
+[gho1] Create an image of a cute white ghost with its tongue sticking out
+[gho2] Create an image of a translucent ghost with sad eyes and floating wisps
+[gho3] Create an image of a phantom in a tattered dark cloak
+[gho4] Create an image of a wraith with shadowy form and glowing purple eyes
+[gho5] Create an image of a grim reaper with a scythe and dark hooded robe
+
+# ---- 岩獣 roc ----
+[roc1] Create an image of a small rocky boar with stone tusks
+[roc2] Create an image of a stone wolf with rock spikes along its back
+[roc3] Create an image of a stone rhino with a crystal horn and armored hide
+[roc4] Create an image of a behemoth made of granite with a crystal-embedded body
+[roc5] Create an image of an ancient granite titan beast with mossy stone armor
+
+# ---- 風妖 win ----
+[win1] Create an image of a wind wisp spirit with a feathered tail and ethereal body
+[win2] Create an image of a Sylph fairy of wind with translucent wings
+[win3] Create an image of a tempest spirit surrounded by a swirling cyclone
+[win4] Create an image of a harpy with bird wings and sharp claws
+[win5] Create an image of a desert wind storm spirit with sand swirling around
+
+# ---- 蛇竜 ser ----
+[ser1] Create an image of a small water naga snake with blue scales
+[ser2] Create an image of a three-headed Hydra with green scales
+[ser3] Create an image of a sea dragon with fins along its serpentine body
+[ser4] Create an image of Tiamat the chaos dragon goddess with five heads
+[ser5] Create an image of Jormungandr the world serpent encircling the earth
+
+# ---- 悪魔獣 dmn ----
+[dmn1] Create an image of a small horned demon goat with red glowing eyes
+[dmn2] Create an image of a fiendish boar with red eyes and tusks
+[dmn3] Create an image of a demon wolf with shadow flames trailing behind
+[dmn4] Create an image of Amon a dragon-headed demon prince in dark robes
+[dmn5] Create an image of Baphomet a goat-headed demon lord on a throne
+
+# ---- 妖精 fay ----
+[fay1] Create an image of a tiny hat-wearing dwarf with a beard
+[fay2] Create an image of a delicate flower fairy with petal wings
+[fay3] Create an image of Tinker a sparkle fairy radiating magic dust
+[fay4] Create an image of Oberon king of fairies with a leaf crown
+[fay5] Create an image of Titania fairy queen with butterfly crown and scepter
+
+# ---- 亀 tur ----
+[tur1] Create an image of a tiny green turtle with cute big eyes
+[tur2] Create an image of a giant Gamera turtle with a spiked shell
+[tur3] Create an image of an armored turtle guardian with a stone shell
+[tur4] Create an image of Aspidochelone a mountain-sized turtle island
+[tur5] Create an image of Genbu the black tortoise of the north divine sacred beast
+
+# ---- 猫 cat ----
+[cat1] Create an image of a cute orange tabby kitten in a playful pose
+[cat2] Create an image of a mischievous alley cat with a sly grin
+[cat3] Create an image of a were-cat humanoid feline warrior with claws
+[cat4] Create an image of a Cait Sith fairy cat with boots and feathered hat
+[cat5] Create an image of Egyptian goddess Bastet a divine cat-headed queen
+
+# ---- 石像鳥 stb ----
+[stb1] Create an image of a small stone bird statue come to life
+[stb2] Create an image of a gargoyle with stone wings and grim expression
+[stb3] Create an image of a rock Roc bird with mossy granite feathers
+[stb4] Create an image of a basilisk reptile bird with a petrifying gaze
+[stb5] Create an image of a cockatrice rooster-reptile chimera with serpent tail
+
+# ---- 光竜 anu ----
+[anu1] Create an image of a small white light dragon glowing softly
+[anu2] Create an image of a holy saint dragon with a halo above its head
+[anu3] Create an image of a divine sacred dragon with golden scales
+[anu4] Create an image of a dragon god with a radiant aura and crystal horns
+[anu5] Create an image of Bahamut supreme dragon king with celestial wings
+
+# ---- メタル mtl ----
+[mtl1] Create an image of a tiny silver metal slime with a shiny chrome surface
+[mtl2] Create an image of a chrome metal slime with reflective mirror finish
+[mtl3] Create an image of a platinum slime with an elusive sparkle effect
+[mtl4] Create an image of a golden metal slime king with crown of gems
+[mtl5] Create an image of a divine metal slime god with rainbow chrome iridescence
+
+# ---- 結晶 jwl ----
+[jwl1] Create an image of a small ruby gem creature with crystal facets
+[jwl2] Create an image of a crystal cluster monster with glowing core
+[jwl3] Create an image of a diamond golem with a faceted crystal body
+[jwl4] Create an image of a prismatic rainbow crystal beast with spectral aura
+[jwl5] Create an image of a divine gem god embodying all elements with prismatic crown
+
+# ---- 属性神 god_* ----
+[god_fire] Create an image of an epic divine being Ignis fire god with crown of flames and burning robes, majestic
+[god_water] Create an image of an epic divine being Aquas water god seated on ocean throne with trident, majestic
+[god_grass] Create an image of an epic divine being Flora nature goddess of blooming life surrounded by flowers, majestic
+[god_wind] Create an image of an epic divine being Tempest wind god with vortex aura and feathered cloak, majestic
+[god_earth] Create an image of an epic divine being Gaia earth mother with mountain crown and natural armor, majestic
+[god_thunder] Create an image of an epic divine being Fulgur thunder god with lightning bolts radiating, majestic
+[god_light] Create an image of an epic divine being Lux god of light with blinding white aura and golden raiment, majestic
+[god_dark] Create an image of an epic divine being Nox god of darkness with void aura and shadow tendrils, majestic
+
+# ---- 巨神 titan_* ----
+[titan_fire] Create an image of a colossal mythic titan Surtr fire giant with flaming sword and burning skin, world-shaking
+[titan_water] Create an image of a colossal mythic titan Poseidon sea god with golden trident and crown of coral, world-shaking
+[titan_grass] Create an image of a colossal mythic titan Yggdrasil world tree with branches reaching into cosmos, world-shaking
+[titan_wind] Create an image of a colossal mythic titan Djinn wind emerging from giant lamp with storm clouds, world-shaking
+[titan_earth] Create an image of a colossal mythic titan Atlas earth holding the sky on his shoulders, world-shaking
+[titan_thunder] Create an image of a colossal mythic titan Zeus thunder king with lightning bolts and golden throne, world-shaking
+[titan_light] Create an image of a colossal mythic titan Sol sun god with burning corona and golden chariot, world-shaking
+[titan_dark] Create an image of a colossal mythic titan Nyx night goddess with starry veil and crescent moon, world-shaking
+
+# ---- オリジン ----
+[origin] Create an image of a cosmic ultimate being Origin the prismatic god containing all 8 elements with rainbow wings and divine crown of stars, beyond godhood final form
+
+# ================================================================
+# Tips:
+#   - Gemini/Imagen は1度に4枚生成。気に入った1枚を保存
+#   - 透過PNGが出ない場合は、後で remove.bg などで背景除去
+#   - 統一感UP: 「previous same style」と書いて連続生成すると揃いやすい
+# ================================================================

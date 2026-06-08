@@ -15,7 +15,9 @@
 │       ├── ALL-157-midjourney.txt        ← Midjourney /imagine 全 157 個
 │       ├── ALL-157-dalle.txt             ← DALL-E / ChatGPT 用
 │       ├── ALL-157-stable-diffusion.txt  ← SD（Negative付き）
-│       └── bing-quick-links.html         ← Bing クリック1発で開く
+│       ├── ALL-157-gemini.txt            ← Gemini / Imagen / ImageFX 用 ★ Google
+│       ├── bing-quick-links.html         ← Bing クリック1発で開く
+│       └── gemini-quick-links.html       ← Gemini / ImageFX クリック1発で開く ★無料
 └── scripts/
     ├── install-ai-art.bat    ← ダブルクリックで自動処理
     └── install-ai-art.ps1
@@ -25,17 +27,27 @@
 
 ### Step 1 — AI で 6 枚生成（最初）
 
-**最も簡単: Bing Image Creator（無料・Microsoft アカウント）**
+選べる AI サービス（おすすめ順）:
 
-1. `assets/monsters/prompts/bing-quick-links.html` を **ブラウザで開く**
-2. 上部「★ スターター6種」の各 [生成 →] ボタンをクリック
-3. Bing が開くので **作成** を押す（4枚出るので気に入った1枚をダウンロード）
-4. ダウンロードしたら **ファイル名を `sla1.png` 等に変更**
-5. 6枚すべて `assets/monsters/raw/` に入れる
+| サービス | リンクファイル | 料金 | アカウント |
+|---|---|---|---|
+| 🟢 **ImageFX** | `gemini-quick-links.html` の緑ボタン | **完全無料** | Google |
+| 🔵 **Gemini (Imagen 3)** | `gemini-quick-links.html` の青ボタン | 無料枠あり | Google |
+| 🟦 **Bing Image Creator** | `bing-quick-links.html` | **完全無料** | Microsoft |
+| 🟣 **Midjourney** | `ALL-157-midjourney.txt` | 月額 $10〜 | Discord |
+| ⚪ **DALL-E / ChatGPT Plus** | `ALL-157-dalle.txt` | 月額 $20 | OpenAI |
+| 🔴 **Stable Diffusion (DreamStudio 等)** | `ALL-157-stable-diffusion.txt` | 〜無料 | 各サービス |
 
-別の選択肢:
-- **Midjourney**: `ALL-157-midjourney.txt` の最初の6行を Discord に1つずつ送信
-- **ChatGPT (Plus)**: `ALL-157-dalle.txt` の最初の6プロンプトを順に投げる
+**最も簡単: Gemini / ImageFX クイックリンク**
+
+1. `assets/monsters/prompts/gemini-quick-links.html` を **ブラウザで開く**
+2. 上部「★ スターター6種」の **[Gemini→]** または **[ImageFX→]** をクリック
+3. プロンプトが**自動でクリップボードにコピー**され、新タブで AI が開く
+4. 入力欄に **Ctrl+V** でペースト → Enter
+5. 4 枚出る → 気に入った1枚をダウンロード
+6. ファイル名を `sla1.png` 等に変更 → `assets/monsters/raw/` へ
+
+別の選択肢: 同じ手順で `bing-quick-links.html` （Bing は URL でプロンプト渡せるので「コピー」も不要）
 
 ### Step 2 — 自動インストール
 
@@ -91,6 +103,12 @@
 
 1. 「これから6体の同シリーズ・キャラ画像を生成します。すべて同じ画風・同じカード型サイズで」と最初に宣言
 2. プロンプトを1つずつ投げる
+
+### Gemini / ImageFX: 連続生成で画風統一
+
+1. **ImageFX** は「Make another in the same style」ボタンが標準装備 — クリックで前と同じ画風で次を生成
+2. **Gemini** は最初の絵を「気に入った」と言ってから次を生成すると画風を維持しやすい
+3. すべて生成し終わったら背景透過が必要 → [remove.bg](https://remove.bg) (50枚/月無料) や [Photoroom](https://photoroom.com) で一括処理
 
 ## 🛠 トラブルシュート
 

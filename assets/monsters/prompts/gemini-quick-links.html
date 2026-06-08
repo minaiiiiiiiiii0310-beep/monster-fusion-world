@@ -1,0 +1,326 @@
+<!DOCTYPE html>
+<html lang="ja"><head>
+<meta charset="UTF-8">
+<title>Gemini / ImageFX クイックリンク — モンスター生成</title>
+<style>
+  body { font-family: -apple-system, "Yu Gothic", sans-serif;
+         background: #10131c; color: #e8ecf6; padding: 16px; max-width: 900px; margin: 0 auto; }
+  h1 { color: #4285f4; }   /* Google blue */
+  h2 { color: #5b8cff; border-bottom: 1px solid #33405f; padding-bottom: 4px; margin-top: 24px; }
+  .item { display: flex; align-items: center; gap: 12px; padding: 8px; border-bottom: 1px solid #1d2438; }
+  .id { font-family: monospace; color: #ffd23d; width: 110px; font-weight: 700; }
+  .desc { flex: 1; color: #c5cde0; font-size: 13px; }
+  .btns { display: flex; gap: 6px; }
+  .btn { background: #4285f4; color: white; padding: 6px 12px; border: none; border-radius: 8px;
+         font-size: 12px; font-weight: 700; white-space: nowrap; cursor: pointer; }
+  .btn:hover { background: #1a73e8; }
+  .btn.fx { background: #34a853; }
+  .btn.fx:hover { background: #2d9446; }
+  .hint { background: #1d2438; padding: 10px 14px; border-radius: 8px;
+          font-size: 13px; color: #9aa6c4; margin-bottom: 16px; }
+  .hint code { background: #0a0d18; padding: 2px 6px; border-radius: 4px; color: #ffd23d; }
+  .toast { position: fixed; left: 50%; bottom: 24px; transform: translate(-50%, 16px);
+           background: #0b0f1cee; border: 1px solid #5b8cff; color: white;
+           padding: 10px 18px; border-radius: 14px; font-size: 14px; font-weight: 700;
+           opacity: 0; transition: .25s; z-index: 9999; pointer-events: none; }
+  .toast.show { opacity: 1; transform: translate(-50%, 0); }
+</style>
+</head><body>
+<h1>🤖 Gemini / ImageFX クイックリンク（無料で AI 画像生成）</h1>
+<div class="hint">
+  <p><strong>使い方:</strong></p>
+  <ol>
+    <li>右側の青ボタン <b>[Gemini で生成 →]</b> または 緑ボタン <b>[ImageFX で生成 →]</b> をクリック</li>
+    <li>その種族のプロンプトが <strong>クリップボードに自動コピー</strong> される</li>
+    <li>新しいタブで Gemini / ImageFX が開く（要 Google ログイン）</li>
+    <li>入力欄に <code>Ctrl+V</code> でペースト → Enter / 生成 ボタン</li>
+    <li>4枚出る → 気に入った1枚をダウンロード</li>
+    <li>ファイル名を <code>&lt;ID&gt;.png</code>（例: <code>sla1.png</code>）にリネーム</li>
+    <li><code>assets/monsters/raw/</code> に入れて <code>scripts/install-ai-art.bat</code> 実行</li>
+  </ol>
+  <p><strong>Gemini と ImageFX の違い:</strong></p>
+  <ul>
+    <li><b style="color:#4285f4">Gemini</b>: Google アカウント。Imagen 3/4 を使用、写実〜アニメ風何でも</li>
+    <li><b style="color:#34a853">ImageFX</b>: 完全無料、AIテストキッチン経由、画風指定が分かりやすい</li>
+  </ul>
+</div>
+
+<div id="toast" class="toast">📋 コピーしました！ 次のタブで Ctrl+V してください</div>
+
+<script>
+  const GEMINI_URL = 'https://gemini.google.com/app';
+  const IMAGEFX_URL = 'https://aitestkitchen.withgoogle.com/tools/image-fx';
+
+  const SFX = ", chibi cartoon style, anime aesthetic, bold black outlines, soft cel-shading, vibrant colors, full body centered, transparent background, square 1:1, no text or watermark";
+
+  // [ID, 日本語名, プロンプト本文, 'h'=ヘッダー]
+  const ITEMS = [
+    ["__starter__", "★ スターター6種（まずこれだけ作ろう）", "", "h"],
+    ["sla1", "スラ", "Create an image of a tiny blue slime drop with two big sparkling eyes and a cheerful smile"],
+    ["bea1", "コボル", "Create an image of a small brown wolf cub with sharp fangs and bright yellow eyes"],
+    ["bir1", "ピヨル", "Create an image of a fluffy yellow baby chick with tiny wings and big round eyes"],
+    ["pla1", "マンドラ", "Create an image of a small green mandrake plant creature with leafy hair and tiny arms"],
+    ["cat1", "ニャン", "Create an image of a cute orange tabby kitten in a playful pose"],
+    ["mus1", "キノピ", "Create an image of a red mushroom monster with white spots on its cap and a cute face on its white stem"],
+
+    ["__sla__", "🟦 スライム sla", "", "h"],
+    ["sla2", "ベススラ", "Create an image of a medium royal blue slime with two eyes and small white horns"],
+    ["sla3", "スラナイト", "Create an image of a blue slime knight wearing silver armor and holding a small sword"],
+    ["sla4", "スラキング", "Create an image of a large blue slime king with golden crown and majestic purple cape"],
+    ["sla5", "スラゴッド", "Create an image of a divine blue slime god radiating holy light with golden halo"],
+
+    ["__bea__", "🐺 オオカミ bea", "", "h"],
+    ["bea2", "ガルー", "Create an image of a teen brown wolf with fierce expression in battle stance"],
+    ["bea3", "ウルフェン", "Create an image of an adult gray wolf with battle scars and golden eyes"],
+    ["bea4", "フェンリル", "Create an image of a massive silver Fenrir wolf with icy blue mane and legendary aura"],
+    ["bea5", "ベヒモス", "Create an image of a colossal black behemoth wolf-beast with horns and red glowing eyes"],
+
+    ["__bir__", "🦅 鳥 bir", "", "h"],
+    ["bir2", "ホークル", "Create an image of a sky-blue hawk with spread wings and sharp eyes"],
+    ["bir3", "グリフォ", "Create an image of a noble griffon with lion body and eagle head and golden feathers"],
+    ["bir4", "ロックチョウ", "Create an image of a giant Roc bird with massive golden feathers and storm clouds"],
+    ["bir5", "ガルーダ", "Create an image of a majestic divine Garuda eagle with rainbow wings and holy aura"],
+
+    ["__pla__", "🌺 植物 pla", "", "h"],
+    ["pla2", "ラフレシ", "Create an image of a giant red Rafflesia flower monster with eyes in the petals"],
+    ["pla3", "トレント", "Create an image of a wooden treant tree-man with branch arms and a bark face"],
+    ["pla4", "エルダー", "Create an image of an ancient Elder treant with glowing green runes and thick bark"],
+    ["pla5", "ワルツリー", "Create an image of a wicked dark treelord with twisted gnarled branches and red eyes"],
+
+    ["__bug__", "🪲 虫 bug", "", "h"],
+    ["bug1", "アリゲ", "Create an image of a giant red warrior ant with mandibles"],
+    ["bug2", "ビートル", "Create an image of a rhinoceros beetle with shiny iridescent carapace"],
+    ["bug3", "デスモス", "Create an image of a death moth with a skull pattern on its wings"],
+    ["bug4", "ホーネト", "Create an image of a giant yellow hornet with a venom stinger"],
+    ["bug5", "デスビー", "Create an image of a queen demon bee with red eyes and royal crown"],
+
+    ["__und__", "💀 アンデッド und", "", "h"],
+    ["und1", "ホネオ", "Create an image of a small skeleton with a rusty sword"],
+    ["und2", "スケルト", "Create an image of a skeleton warrior with iron shield and helmet"],
+    ["und3", "リッチ", "Create an image of a hooded lich with glowing purple eyes and ornate staff"],
+    ["und4", "デスナイ", "Create an image of a dark death knight in black armor with red glowing visor"],
+    ["und5", "デュラハン", "Create an image of a headless Dullahan rider holding his own head"],
+
+    ["__aqu__", "🐟 水生 aqu", "", "h"],
+    ["aqu1", "サカナ", "Create an image of a cute orange koi fish with big eyes and bubbles"],
+    ["aqu2", "マーマン", "Create an image of a merman warrior with a trident and blue fins"],
+    ["aqu3", "クラーケ", "Create an image of a young purple kraken with curling tentacles and big eyes"],
+    ["aqu4", "リヴァイ", "Create an image of a massive blue Leviathan sea serpent with fins along its back"],
+    ["aqu5", "シードラ", "Create an image of a divine sea dragon with a crown of coral and pearl scales"],
+
+    ["__dra__", "🐉 ドラゴン dra", "", "h"],
+    ["dra1", "ドラポン", "Create an image of a cute baby red dragon hatchling with tiny wings"],
+    ["dra2", "ドラグ", "Create an image of a teen red dragon with developing wings and fierce expression"],
+    ["dra3", "ドラグーン", "Create an image of an adult red dragon dragoon with spread wings breathing fire"],
+    ["dra4", "ティラノ", "Create an image of a massive T-rex like dragon tyrant with red scales"],
+    ["dra5", "ファヴニル", "Create an image of a legendary Fafnir dragon with golden scales and rainbow aura"],
+
+    ["__dev__", "😈 悪魔 dev", "", "h"],
+    ["dev1", "コアク", "Create an image of a small purple imp with tiny bat wings and devil horns"],
+    ["dev2", "デビラ", "Create an image of a teen devil with curved horns and a pitchfork"],
+    ["dev3", "マオウ", "Create an image of a demon lord Maou with massive horns and glowing red eyes"],
+    ["dev4", "アークデ", "Create an image of an arch-demon with multiple bat wings and a dark robe"],
+    ["dev5", "ルシフェ", "Create an image of the supreme devil Lucifer in dark elegance with six wings"],
+
+    ["__mat__", "🗿 ゴーレム mat", "", "h"],
+    ["mat1", "ストン", "Create an image of a small stone gargoyle with glowing eyes"],
+    ["mat2", "ゴーレ", "Create an image of a rocky golem with cracks revealing a glowing core"],
+    ["mat3", "アイゴレ", "Create an image of an iron golem with glowing eyes and steel plates"],
+    ["mat4", "タイタロ", "Create an image of a titanic stone titan with a crystal core glowing in its chest"],
+    ["mat5", "コロッサ", "Create an image of a colossus mountain-sized golem with ancient runes"],
+
+    ["__ifr__", "🔥 炎の精 ifr", "", "h"],
+    ["ifr1", "メラゴ", "Create an image of a small fire spirit shaped like a flame with eyes"],
+    ["ifr2", "フレイム", "Create an image of a fire elemental with a body of orange flames"],
+    ["ifr3", "インフェ", "Create an image of an inferno demon wreathed in red flames"],
+    ["ifr4", "ヴァルカ", "Create an image of a Vulcan god with lava cracks across stone skin"],
+    ["ifr5", "イフリト", "Create an image of the great Ifrit king of fire with horns and burning eyes"],
+
+    ["__ice__", "❄️ 氷ビースト ice", "", "h"],
+    ["ice1", "フブキ", "Create an image of a small white snow fox with icy fur"],
+    ["ice2", "ブリザド", "Create an image of a frost beast with icy blue fur and breath of cold mist"],
+    ["ice3", "アイスゴ", "Create an image of an ice golem with crystal armor and a frosty aura"],
+    ["ice4", "フロスト", "Create an image of a frost giant with a massive ice club and white beard"],
+    ["ice5", "ヨトゥン", "Create an image of the giant Jotunn lord of ice with horns of frost"],
+
+    ["__thu__", "⚡ 雷獣 thu", "", "h"],
+    ["thu1", "スパーク", "Create an image of a small electric mouse-like creature with a lightning tail"],
+    ["thu2", "ボルト", "Create an image of a lightning fox with crackling yellow fur"],
+    ["thu3", "サンダ", "Create an image of a thunder beast with a mane of lightning sparks"],
+    ["thu4", "ライジン", "Create an image of the Japanese thunder god Raijin holding drums of thunder"],
+    ["thu5", "トール", "Create an image of the mighty Thor with hammer Mjolnir and lightning"],
+
+    ["__lig__", "😇 天使 lig", "", "h"],
+    ["lig1", "ピクシー", "Create an image of a tiny pixie with butterfly wings and a magic wand"],
+    ["lig2", "エンジェ", "Create an image of a kind angel with white robe and golden halo"],
+    ["lig3", "セラフ", "Create an image of a seraph with six glowing wings and a flaming sword"],
+    ["lig4", "アークエ", "Create an image of an archangel in golden armor with massive white wings"],
+    ["lig5", "メタトロ", "Create an image of Metatron supreme angel of light with cosmic robes"],
+
+    ["__uni__", "🦄 ユニコーン uni", "", "h"],
+    ["uni1", "ユニコ", "Create an image of a young white unicorn pony with a pastel mane"],
+    ["uni2", "ペガサ", "Create an image of a noble pegasus with feathered wings spread"],
+    ["uni3", "キリン", "Create an image of a Kirin Asian unicorn with golden scales and flowing mane"],
+    ["uni4", "アルビオ", "Create an image of an albino royal unicorn with golden horn and silver hooves"],
+    ["uni5", "ホーリド", "Create an image of a holy divine unicorn radiating pure white light"],
+
+    ["__mus__", "🍄 キノコ mus", "", "h"],
+    ["mus2", "マッシュ", "Create an image of a mushroom warrior with arms and a red cap shield"],
+    ["mus3", "モーモン", "Create an image of a giant mushroom with multiple eyes on the cap"],
+    ["mus4", "スポア", "Create an image of a spore mushroom releasing magic dust clouds"],
+    ["mus5", "マイコ", "Create an image of the mushroom king Mycelion with a cap crown and royal cape"],
+
+    ["__gho__", "👻 ゴースト gho", "", "h"],
+    ["gho1", "オバケ", "Create an image of a cute white ghost with its tongue sticking out"],
+    ["gho2", "ゴースト", "Create an image of a translucent ghost with sad eyes and floating wisps"],
+    ["gho3", "ファント", "Create an image of a phantom in a tattered dark cloak"],
+    ["gho4", "レイス", "Create an image of a wraith with shadowy form and glowing purple eyes"],
+    ["gho5", "リーパー", "Create an image of a grim reaper with a scythe and dark hooded robe"],
+
+    ["__roc__", "🪨 岩獣 roc", "", "h"],
+    ["roc1", "ロッキ", "Create an image of a small rocky boar with stone tusks"],
+    ["roc2", "ストガル", "Create an image of a stone wolf with rock spikes along its back"],
+    ["roc3", "ロックゴ", "Create an image of a stone rhino with a crystal horn and armored hide"],
+    ["roc4", "ベヒロク", "Create an image of a behemoth made of granite with a crystal-embedded body"],
+    ["roc5", "グラニト", "Create an image of an ancient granite titan beast with mossy stone armor"],
+
+    ["__win__", "🌪️ 風妖 win", "", "h"],
+    ["win1", "ウィスプ", "Create an image of a wind wisp spirit with a feathered tail and ethereal body"],
+    ["win2", "シルフ", "Create an image of a Sylph fairy of wind with translucent wings"],
+    ["win3", "テンペス", "Create an image of a tempest spirit surrounded by a swirling cyclone"],
+    ["win4", "ハルピュ", "Create an image of a harpy with bird wings and sharp claws"],
+    ["win5", "バハール", "Create an image of a desert wind storm spirit with sand swirling around"],
+
+    ["__ser__", "🐍 蛇竜 ser", "", "h"],
+    ["ser1", "ナーガ", "Create an image of a small water naga snake with blue scales"],
+    ["ser2", "ヒュドラ", "Create an image of a three-headed Hydra with green scales"],
+    ["ser3", "ウミドラ", "Create an image of a sea dragon with fins along its serpentine body"],
+    ["ser4", "ティアマ", "Create an image of Tiamat the chaos dragon goddess with five heads"],
+    ["ser5", "ヨルム", "Create an image of Jormungandr the world serpent encircling the earth"],
+
+    ["__dmn__", "🐐 悪魔獣 dmn", "", "h"],
+    ["dmn1", "バァル", "Create an image of a small horned demon goat with red glowing eyes"],
+    ["dmn2", "ベリト", "Create an image of a fiendish boar with red eyes and tusks"],
+    ["dmn3", "ガープ", "Create an image of a demon wolf with shadow flames trailing behind"],
+    ["dmn4", "アモン", "Create an image of Amon a dragon-headed demon prince in dark robes"],
+    ["dmn5", "バフォメ", "Create an image of Baphomet a goat-headed demon lord on a throne"],
+
+    ["__fay__", "🧚 妖精 fay", "", "h"],
+    ["fay1", "コビト", "Create an image of a tiny hat-wearing dwarf with a beard"],
+    ["fay2", "ヨウセイ", "Create an image of a delicate flower fairy with petal wings"],
+    ["fay3", "ティンク", "Create an image of Tinker a sparkle fairy radiating magic dust"],
+    ["fay4", "オベロン", "Create an image of Oberon king of fairies with a leaf crown"],
+    ["fay5", "ティタニ", "Create an image of Titania fairy queen with butterfly crown and scepter"],
+
+    ["__tur__", "🐢 亀 tur", "", "h"],
+    ["tur1", "カメっこ", "Create an image of a tiny green turtle with cute big eyes"],
+    ["tur2", "ガメラ", "Create an image of a giant Gamera turtle with a spiked shell"],
+    ["tur3", "ガーディ", "Create an image of an armored turtle guardian with a stone shell"],
+    ["tur4", "アスピド", "Create an image of Aspidochelone a mountain-sized turtle island"],
+    ["tur5", "ゲンブ", "Create an image of Genbu the black tortoise of the north divine sacred beast"],
+
+    ["__cat__", "🐱 猫 cat", "", "h"],
+    ["cat2", "キャット", "Create an image of a mischievous alley cat with a sly grin"],
+    ["cat3", "ワーキャ", "Create an image of a were-cat humanoid feline warrior with claws"],
+    ["cat4", "ケットシ", "Create an image of a Cait Sith fairy cat with boots and feathered hat"],
+    ["cat5", "バステト", "Create an image of Egyptian goddess Bastet a divine cat-headed queen"],
+
+    ["__stb__", "🗿 石像鳥 stb", "", "h"],
+    ["stb1", "イシドリ", "Create an image of a small stone bird statue come to life"],
+    ["stb2", "ガーゴイ", "Create an image of a gargoyle with stone wings and grim expression"],
+    ["stb3", "ロクチョ", "Create an image of a rock Roc bird with mossy granite feathers"],
+    ["stb4", "バジリス", "Create an image of a basilisk reptile bird with a petrifying gaze"],
+    ["stb5", "コカトリ", "Create an image of a cockatrice rooster-reptile chimera with serpent tail"],
+
+    ["__anu__", "🐲 光竜 anu", "", "h"],
+    ["anu1", "ヒカリ竜", "Create an image of a small white light dragon glowing softly"],
+    ["anu2", "セイント", "Create an image of a holy saint dragon with a halo above its head"],
+    ["anu3", "ホリド竜", "Create an image of a divine sacred dragon with golden scales"],
+    ["anu4", "ドラゴ神", "Create an image of a dragon god with a radiant aura and crystal horns"],
+    ["anu5", "バハムー", "Create an image of Bahamut supreme dragon king with celestial wings"],
+
+    ["__mtl__", "🥈 メタル mtl", "", "h"],
+    ["mtl1", "メタッコ", "Create an image of a tiny silver metal slime with a shiny chrome surface"],
+    ["mtl2", "メタスラ", "Create an image of a chrome metal slime with reflective mirror finish"],
+    ["mtl3", "はぐレタル", "Create an image of a platinum slime with an elusive sparkle effect"],
+    ["mtl4", "メタキング", "Create an image of a golden metal slime king with crown of gems"],
+    ["mtl5", "メタゴッド", "Create an image of a divine metal slime god with rainbow chrome iridescence"],
+
+    ["__jwl__", "💎 結晶 jwl", "", "h"],
+    ["jwl1", "ジュエル", "Create an image of a small ruby gem creature with crystal facets"],
+    ["jwl2", "クリスタ", "Create an image of a crystal cluster monster with glowing core"],
+    ["jwl3", "ダイヤモ", "Create an image of a diamond golem with a faceted crystal body"],
+    ["jwl4", "プリズム", "Create an image of a prismatic rainbow crystal beast with spectral aura"],
+    ["jwl5", "ゴドジェム", "Create an image of a divine gem god embodying all elements with prismatic crown"],
+
+    ["__god__", "👑 属性神 god_* (rank 6)", "", "h"],
+    ["god_fire", "イグニス", "Create an image of an epic divine being Ignis fire god with crown of flames and burning robes, majestic"],
+    ["god_water", "アクアス", "Create an image of an epic divine being Aquas water god seated on ocean throne with trident, majestic"],
+    ["god_grass", "フローラ", "Create an image of an epic divine being Flora nature goddess of blooming life surrounded by flowers, majestic"],
+    ["god_wind", "テンペスト", "Create an image of an epic divine being Tempest wind god with vortex aura and feathered cloak, majestic"],
+    ["god_earth", "ガイア", "Create an image of an epic divine being Gaia earth mother with mountain crown and natural armor, majestic"],
+    ["god_thunder", "フルゴル", "Create an image of an epic divine being Fulgur thunder god with lightning bolts radiating, majestic"],
+    ["god_light", "ルクス", "Create an image of an epic divine being Lux god of light with blinding white aura and golden raiment, majestic"],
+    ["god_dark", "ノクス", "Create an image of an epic divine being Nox god of darkness with void aura and shadow tendrils, majestic"],
+
+    ["__titan__", "🌌 巨神 titan_* (rank 7)", "", "h"],
+    ["titan_fire", "スルト", "Create an image of a colossal mythic titan Surtr fire giant with flaming sword and burning skin"],
+    ["titan_water", "ポセイド", "Create an image of a colossal mythic titan Poseidon sea god with golden trident and crown of coral"],
+    ["titan_grass", "ユグドラ", "Create an image of a colossal mythic titan Yggdrasil world tree with branches reaching cosmos"],
+    ["titan_wind", "ジン", "Create an image of a colossal mythic titan Djinn wind emerging from giant lamp with storm clouds"],
+    ["titan_earth", "アトラス", "Create an image of a colossal mythic titan Atlas earth holding the sky on his shoulders"],
+    ["titan_thunder", "ゼウス", "Create an image of a colossal mythic titan Zeus thunder king with lightning bolts and golden throne"],
+    ["titan_light", "ソル", "Create an image of a colossal mythic titan Sol sun god with burning corona and golden chariot"],
+    ["titan_dark", "ニュクス", "Create an image of a colossal mythic titan Nyx night goddess with starry veil and crescent moon"],
+
+    ["__origin__", "🌟 オリジン (rank 7)", "", "h"],
+    ["origin", "オリジン", "Create an image of a cosmic ultimate being Origin the prismatic god containing all 8 elements with rainbow wings and divine crown of stars, beyond godhood final form"],
+  ];
+
+  function showToast() {
+    const t = document.getElementById('toast');
+    t.classList.add('show');
+    clearTimeout(showToast._t);
+    showToast._t = setTimeout(() => t.classList.remove('show'), 2400);
+  }
+  function copyAndOpen(prompt, url) {
+    const full = prompt + SFX;
+    navigator.clipboard.writeText(full).then(() => {
+      showToast();
+      window.open(url, '_blank', 'noopener,noreferrer');
+    }, () => {
+      // クリップボード失敗時はプロンプトを表示
+      alert('クリップボードにコピーできませんでした。下記をコピーしてください:\n\n' + full);
+      window.open(url, '_blank', 'noopener,noreferrer');
+    });
+  }
+
+  const out = document.body;
+  ITEMS.forEach(([id, name, desc, kind]) => {
+    if (kind === 'h') {
+      const h = document.createElement('h2');
+      h.textContent = name;
+      out.appendChild(h);
+      return;
+    }
+    const row = document.createElement('div');
+    row.className = 'item';
+    row.innerHTML =
+      `<span class="id">${id}.png</span>` +
+      `<span class="desc"><b>${name}</b><br>${desc}</span>` +
+      `<span class="btns">
+        <button class="btn" data-prompt="${encodeURIComponent(desc)}" data-url="gemini">Gemini→</button>
+        <button class="btn fx" data-prompt="${encodeURIComponent(desc)}" data-url="imagefx">ImageFX→</button>
+      </span>`;
+    out.appendChild(row);
+  });
+
+  document.body.addEventListener('click', (e) => {
+    const btn = e.target.closest('button[data-url]');
+    if (!btn) return;
+    const prompt = decodeURIComponent(btn.dataset.prompt);
+    const url = btn.dataset.url === 'gemini' ? GEMINI_URL : IMAGEFX_URL;
+    copyAndOpen(prompt, url);
+  });
+</script>
+</body></html>
