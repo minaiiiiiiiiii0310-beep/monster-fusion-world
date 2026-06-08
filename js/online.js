@@ -68,5 +68,41 @@ const Online = (() => {
     };
   }
 
-  return { available, ensureInit, publishTeam, findOpponent, get uid() { return uid; } };
+  /* ========== モンスター・スナップ 非同期 PvP ==========
+   * 自分の Snap デッキを Firebase に登録し、他プレイヤーの デッキを
+   * 取得して CPU 操作の 対戦相手とする。
+   */
+  async function publishSnapDeck(deckIds, opts = {}) {
+    if (!(await ensureInit())) return false;
+    if (!Array.isArray(deckIds) || deckIds.length === 0) return false;
+    await db.ref('snap_decks/' + uid).set({
+      name: (opts.name) || State.data.playerName || ('マスター' + uid.slice(0, 4)),
+      rank: (State.data && State.data.snapRank) || 0,
+      wins: (State.data && State.data.snapWins) || 0,
+      deck: deckIds.slice(0, 24),  // 念のため最大24枚
+      ts: Date.now(),
+    });
+    return true;
+  }
+
+  async function findSnapOpponent() {
+    if (!(await ensureInit())) return null;
+    const snap = await db.ref('snap_decks').limitToLast(50).get();
+    const all = snap.val() || {};
+    const ids = Object.keys(all).filter(k =>
+      k !== uid && all[k] && Array.isArray(all[k].deck) && all[k].deck.length >= 12);
+    if (!ids.length) return null;
+    const pick = all[ids[Math.floor(Math.random() * ids.length)]];
+    return {
+      name: pick.name || 'なぞのマスター',
+      rank: pick.rank || 0,
+      deck: pick.deck.slice(0, 12),
+    };
+  }
+
+  return {
+    available, ensureInit, publishTeam, findOpponent,
+    publishSnapDeck, findSnapOpponent,
+    get uid() { return uid; },
+  };
 })();

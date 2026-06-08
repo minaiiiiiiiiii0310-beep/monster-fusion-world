@@ -43,6 +43,9 @@ const SnapEngine = (() => {
       over: false,
       result: null,
       log: [],
+      bet: 1,                              // ベット倍率
+      snapped: { ally: false, enemy: false },  // 各陣営の Snap宣言済みフラグ
+      retreated: false,                     // プレイヤーがおりたか
     };
     // 初期手札3枚
     drawN('ally', 3);
@@ -351,6 +354,49 @@ const SnapEngine = (() => {
     return { ally: sum('ally'), enemy: sum('enemy') };
   }
 
+  /* ----- Snap! 宣言（ベット倍率を 2倍に） -----
+   * 各陣営とも 1試合に 1回だけ宣言可能。最大 bet = 4（双方が 1回ずつ）。
+   * 宣言可能ターン: 1〜5（ターン6 = 最終公開なので 宣言不可）。
+   */
+  function declareSnap(side) {
+    if (!G || G.over) return { ok: false, msg: 'ゲーム終了済み' };
+    if (G.snapped[side]) return { ok: false, msg: 'すでに Snap 宣言済み' };
+    if (G.turn >= MAX_TURN) return { ok: false, msg: '最終ターンは Snap 不可' };
+    G.snapped[side] = true;
+    G.bet *= 2;
+    G.log.push(`${side === 'ally' ? '★ あなた' : '◆ あいて'} が Snap！ ベット倍率 ${G.bet}倍`);
+    return { ok: true, bet: G.bet };
+  }
+
+  /* ----- おりる（敵の Snap 後、プレイヤーが 撤退できる） -----
+   * ベットの 半分の 損失で 試合終了。
+   */
+  function retreat() {
+    if (!G || G.over) return { ok: false };
+    G.over = true;
+    G.retreated = true;
+    G.result = 'retreat';
+    G.bet = Math.max(1, G.bet / 2);   // おりたら 半額損失
+    G.log.push(`★ あなた が おりた（損失 ${G.bet}倍）`);
+    return { ok: true };
+  }
+
+  /* ----- CPU が Snap 宣言すべきか 評価 -----
+   * 簡易: 自陣の 想定勝ちレーン数 + ロケーション相性 + ターン数
+   */
+  function cpuShouldSnap() {
+    if (G.snapped.enemy) return false;
+    if (G.turn < 3 || G.turn >= MAX_TURN) return false;
+    let winningLanes = 0, totalDiff = 0;
+    G.board.forEach((slot, i) => {
+      const t = totals(i);
+      if (t.enemy > t.ally) winningLanes++;
+      totalDiff += t.enemy - t.ally;
+    });
+    // 2レーン以上 勝っていて、総POW 差が +5 以上で 宣言
+    return winningLanes >= 2 && totalDiff >= 5;
+  }
+
   function finishGame() {
     G.over = true;
     let allyLanes = 0, enemyLanes = 0;
@@ -382,6 +428,9 @@ const SnapEngine = (() => {
     }
     G.allyLanes = allyLanes;
     G.enemyLanes = enemyLanes;
+    // ベット倍率を 反映したランクポイント変動
+    const baseDelta = G.result === 'win' ? 10 : G.result === 'lose' ? -10 : 0;
+    G.rankDelta = Math.round(baseDelta * G.bet);
   }
 
   // API (能力やロケーションが操作するためのフック)
@@ -394,9 +443,16 @@ const SnapEngine = (() => {
     };
   }
 
+  // retreat 後のランクポイント計算
+  function applyRetreatPenalty() {
+    G.rankDelta = Math.round(-5 * G.bet);
+    G.allyLanes = 0; G.enemyLanes = 0;
+  }
+
   return {
     MAX_TURN, HAND_MAX, SLOTS_PER_LANE,
     start, state, play, unplay, endTurn,
+    declareSnap, retreat, cpuShouldSnap, applyRetreatPenalty,
     effectivePow, totals, destroyCard,
   };
 })();

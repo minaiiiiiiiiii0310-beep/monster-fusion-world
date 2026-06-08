@@ -358,3 +358,270 @@
   .snap-log { max-height: 40px; min-height: 24px; }
   .snap-end-btn { padding: 8px 20px; font-size: 13px; min-width: 140px; }
 }
+
+/* ===== ベット倍率表示 / 撤退ボタン ===== */
+.snap-bet-info {
+  background: #ffd23d22;
+  border: 1px solid #ffd23d88;
+  color: #ffd23d;
+  padding: 2px 8px;
+  border-radius: 8px;
+  font-weight: 800;
+  font-size: 12px;
+}
+.snap-bet {
+  background: linear-gradient(180deg, #ffd23d, #b07e10);
+  color: #0c0f17;
+  padding: 6px 14px;
+  border-radius: 14px;
+  font-weight: 900;
+  font-size: 14px;
+  border: 2px solid #fff;
+}
+.snap-retreat {
+  background: linear-gradient(180deg, #888, #555);
+  color: white;
+  border: 2px solid #aaa;
+  padding: 4px 10px;
+  border-radius: 10px;
+  font-weight: 700;
+  font-size: 12px;
+  margin-right: 4px;
+  cursor: pointer;
+}
+.snap-retreat:active { transform: scale(.95); }
+
+.snap-result-bet {
+  font-size: 14px;
+  color: var(--sub);
+  margin-bottom: 14px;
+  padding: 6px 12px;
+  background: #0006;
+  border-radius: 10px;
+}
+.snap-result-bet .win { color: #56d364; font-weight: 800; }
+.snap-result-bet .lose { color: #ff6b6b; font-weight: 800; }
+.snap-result-bet .tie { color: var(--sub); }
+
+/* ===== デッキ・ビルダー ===== */
+.deck-screen {
+  min-height: 100vh;
+  background: linear-gradient(180deg, #0f1428 0%, #1a1f3a 60%, #0c0f1a 100%);
+  padding: env(safe-area-inset-top, 8px) 8px env(safe-area-inset-bottom, 8px);
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  color: var(--text);
+}
+.deck-top {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 4px 6px;
+}
+.deck-title {
+  flex: 1;
+  text-align: center;
+  font-size: 14px;
+  font-weight: 700;
+}
+.deck-title b { font-size: 18px; padding: 0 4px; }
+.deck-title b.ok { color: #56d364; }
+.deck-title b.warn { color: #ffd23d; }
+.deck-avg {
+  display: block;
+  font-size: 11px;
+  color: var(--sub);
+  font-weight: 400;
+}
+.deck-save {
+  background: linear-gradient(180deg, #56d364, #2a8a3a);
+  color: white;
+  border: 2px solid #ffffff44;
+  padding: 8px 16px;
+  border-radius: 10px;
+  font-weight: 800;
+  cursor: pointer;
+  font-size: 13px;
+}
+.deck-save.disabled {
+  background: #555; cursor: not-allowed; opacity: 0.6;
+}
+.deck-save:active { transform: scale(.95); }
+
+.deck-current {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px;
+  padding: 6px;
+  background: #0006;
+  border-radius: 10px;
+  min-height: 80px;
+  border: 1px dashed var(--line);
+}
+.deck-empty {
+  width: 100%;
+  text-align: center;
+  color: var(--sub);
+  padding: 16px;
+  font-size: 12px;
+}
+.deck-current-card {
+  flex: 0 0 56px;
+  width: 56px;
+  background: linear-gradient(150deg, #3a4a6e 0%, #1d2438 100%);
+  border: 2px solid #fff8;
+  border-radius: 8px;
+  padding: 2px;
+  font-size: 9px;
+  position: relative;
+  cursor: pointer;
+  text-align: center;
+}
+.deck-current-card[data-el="fire"]    { background: linear-gradient(150deg, #ff7a30, #c43014); }
+.deck-current-card[data-el="water"]   { background: linear-gradient(150deg, #5ab4ff, #1a4a9a); }
+.deck-current-card[data-el="grass"]   { background: linear-gradient(150deg, #5fd06a, #1a6e2a); }
+.deck-current-card[data-el="wind"]    { background: linear-gradient(150deg, #8ae8d0, #2a8068); }
+.deck-current-card[data-el="earth"]   { background: linear-gradient(150deg, #c69a5b, #6a4a1a); }
+.deck-current-card[data-el="thunder"] { background: linear-gradient(150deg, #ffd23d, #b07e10); }
+.deck-current-card[data-el="light"]   { background: linear-gradient(150deg, #fff1a8, #c8a040); color: #382a10; }
+.deck-current-card[data-el="dark"]    { background: linear-gradient(150deg, #a06bff, #3a1888); }
+.deck-current-card .snap-card-cost {
+  top: -4px; left: -3px; width: 18px; height: 18px; font-size: 10px;
+}
+.deck-mini-emoji {
+  font-size: 22px;
+  padding: 6px 0 2px;
+}
+.deck-mini-emoji .deck-art {
+  width: 100%; height: 32px; object-fit: contain;
+}
+.deck-mini-name {
+  font-size: 8.5px;
+  font-weight: 700;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  padding: 1px 2px;
+}
+
+.deck-filters {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  padding: 0 4px;
+}
+.deck-filter-row {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  overflow-x: auto;
+  -webkit-overflow-scrolling: touch;
+}
+.deck-filter-label {
+  font-size: 10px;
+  color: var(--sub);
+  flex-shrink: 0;
+  min-width: 36px;
+}
+.deck-chip {
+  flex-shrink: 0;
+  background: var(--panel);
+  border: 1px solid var(--line);
+  color: var(--text);
+  padding: 4px 10px;
+  border-radius: 16px;
+  font-size: 11px;
+  cursor: pointer;
+}
+.deck-chip.selected {
+  background: var(--gold);
+  color: #0c0f17;
+  border-color: var(--gold);
+  font-weight: 700;
+}
+.deck-chip:active { transform: scale(.95); }
+
+.deck-pool {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 6px;
+  padding: 4px;
+  flex: 1;
+  overflow-y: auto;
+  -webkit-overflow-scrolling: touch;
+}
+.deck-pool-card {
+  background: linear-gradient(150deg, #3a4a6e 0%, #1d2438 100%);
+  border: 2px solid #fff8;
+  border-radius: 8px;
+  padding: 2px;
+  font-size: 9px;
+  color: #fff;
+  position: relative;
+  box-shadow: 0 2px 6px #0008, inset 0 1px 0 #ffffff44;
+  cursor: pointer;
+  display: flex;
+  flex-direction: column;
+  min-height: 120px;
+}
+.deck-pool-card[data-el="fire"]    { background: linear-gradient(150deg, #ff7a30, #c43014); }
+.deck-pool-card[data-el="water"]   { background: linear-gradient(150deg, #5ab4ff, #1a4a9a); }
+.deck-pool-card[data-el="grass"]   { background: linear-gradient(150deg, #5fd06a, #1a6e2a); }
+.deck-pool-card[data-el="wind"]    { background: linear-gradient(150deg, #8ae8d0, #2a8068); }
+.deck-pool-card[data-el="earth"]   { background: linear-gradient(150deg, #c69a5b, #6a4a1a); }
+.deck-pool-card[data-el="thunder"] { background: linear-gradient(150deg, #ffd23d, #b07e10); }
+.deck-pool-card[data-el="light"]   { background: linear-gradient(150deg, #fff1a8, #c8a040); color: #382a10; }
+.deck-pool-card[data-el="dark"]    { background: linear-gradient(150deg, #a06bff, #3a1888); }
+.deck-pool-card.in-deck {
+  outline: 3px solid var(--gold);
+  outline-offset: 1px;
+  opacity: 0.85;
+}
+.deck-pool-card:active { transform: scale(.95); }
+.deck-pool-card .snap-card-cost { width: 20px; height: 20px; font-size: 11px; }
+.deck-pool-card .snap-card-pow { min-width: 20px; height: 20px; font-size: 11px; }
+.deck-pool-card .snap-card-art-wrap { min-height: 36px; }
+.deck-pool-card .snap-card-art-emoji { font-size: 22px; }
+.deck-pool-card .snap-card-name { font-size: 8px; }
+.deck-pool-card .snap-card-ability { font-size: 7px; }
+.deck-check {
+  position: absolute;
+  top: 50%; left: 50%;
+  transform: translate(-50%, -50%);
+  font-size: 36px;
+  color: var(--gold);
+  text-shadow: 0 0 8px #000, 0 0 12px #ffd23d;
+  pointer-events: none;
+  z-index: 3;
+}
+.deck-no-results {
+  grid-column: 1 / -1;
+  text-align: center;
+  color: var(--sub);
+  padding: 24px;
+}
+.deck-toast {
+  position: fixed;
+  bottom: 100px;
+  left: 50%;
+  transform: translateX(-50%);
+  background: #000c;
+  color: white;
+  padding: 8px 16px;
+  border-radius: 20px;
+  font-size: 13px;
+  z-index: 9999;
+  border: 1px solid var(--line);
+}
+
+/* ===== 横画面のとき デッキビルダーも 縮小 ===== */
+@media (orientation: landscape) and (max-height: 600px) {
+  .deck-screen { padding: 4px; gap: 4px; }
+  .deck-pool { grid-template-columns: repeat(5, 1fr); }
+  .deck-pool-card { min-height: 100px; font-size: 8px; }
+  .deck-pool-card .snap-card-art-emoji { font-size: 18px; }
+  .deck-current { min-height: 60px; }
+  .deck-current-card { flex: 0 0 44px; width: 44px; }
+  .deck-mini-emoji { font-size: 16px; }
+}

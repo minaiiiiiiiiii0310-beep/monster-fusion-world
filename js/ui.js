@@ -10,12 +10,17 @@ const UI = (() => {
   let root;
   let backTarget = 'home';
 
+  // モード保持（次のスナップ起動時に 引き継ぐ）
+  let snapMode = 'cpu';      // 'cpu' | 'online'
+  let onlineOpp = null;       // online 対戦の 相手情報
+
   /* ===== ルーター ====================================================== */
   function show(name) {
     root = document.getElementById('screen');
     closeModal();
     if (name === 'home') renderHome();
     else if (name === 'snap') renderSnap();
+    else if (name === 'deck') renderDeck();
     else if (name === 'dex') renderDex();
     else if (name === 'settings') renderSettings();
     else renderHome();
@@ -71,20 +76,30 @@ const UI = (() => {
       return `<span class="home-emoji">${inner}</span>`;
     }).join('');
     const wins = (State.data && State.data.snapWins) || 0;
+    const rank = (State.data && State.data.snapRank) || 0;
+    const onlineAvail = (typeof Online !== 'undefined') && Online.available();
     root.innerHTML = `
       <div class="home title">
         <h1 class="game-title">モンスター<br><span>スナップ</span></h1>
         <p class="title-sub">— 3レーン × 6ターン の カードバトル —</p>
         <div class="pp-emojis">${emojis}</div>
-        <button class="menu-btn big start" data-act="startSnap"
+        <button class="menu-btn big start" data-act="startSnapCpu"
           style="background:linear-gradient(180deg,#ff7a30,#c43014);border-color:#ffd23d;">
-          <span class="mi">🎴</span>たいせん スタート
+          <span class="mi">🎴</span>CPU と たいせん
+        </button>
+        ${onlineAvail ? `
+          <button class="menu-btn big start" data-act="startSnapOnline"
+            style="margin-top:10px;background:linear-gradient(180deg,#5b8cff,#3a64e0);border-color:#a8c5ff;">
+            <span class="mi">🌐</span>オンライン たいせん
+          </button>` : ''}
+        <button class="menu-btn" data-act="goDeck" style="margin-top:10px;">
+          <span class="mi">📋</span>デッキ編成
         </button>
         <div class="title-mini">
           <button class="btn ghost" data-act="dexFromTitle">📖 ずかん</button>
           <button class="btn ghost" data-act="settingsFromTitle">⚙️ せってい</button>
         </div>
-        <div class="home-stat">かちすう ${wins}</div>
+        <div class="home-stat">かちすう ${wins} ／ ランク ${rank}</div>
       </div>`;
   }
 
@@ -95,7 +110,60 @@ const UI = (() => {
         <p class="hint">スナップ・モジュールが 読み込まれていません。再読み込みしてください。</p>`;
       return;
     }
-    SnapUI.start({ onExit: () => show('home') });
+    // 保存済みデッキを 使用（無ければ スターター）
+    const deck = (State.data && State.data.snapDeck && State.data.snapDeck.length === 12)
+      ? State.data.snapDeck.slice()
+      : SnapData.starterDeck();
+    let enemyDeck = null, opponentName = 'CPU';
+    if (snapMode === 'online' && onlineOpp) {
+      enemyDeck = onlineOpp.deck;
+      opponentName = onlineOpp.name;
+    }
+    SnapUI.start({
+      deck, enemyDeck, opponentName, mode: snapMode,
+      onExit: () => show('home'),
+    });
+  }
+
+  /* ===== デッキ編成 ===================================================== */
+  function renderDeck() {
+    if (typeof SnapDeck === 'undefined') {
+      root.innerHTML = `${header('デッキ編成')}
+        <p class="hint">デッキ・モジュールが 読み込まれていません。</p>`;
+      return;
+    }
+    SnapDeck.start({ onExit: () => show('home') });
+  }
+
+  /* ===== オンライン対戦の 起動 ========================================= */
+  async function startOnlineMatch() {
+    if (typeof Online === 'undefined' || !Online.available()) {
+      toast('オンラインは 未設定です', 'warn');
+      return;
+    }
+    showModal(`<div class="dialogue"><div class="dlg-text">🌐 あいてを さがしています…</div></div>`, true);
+    try {
+      // 自分のデッキを 公開
+      const myDeck = (State.data.snapDeck && State.data.snapDeck.length === 12)
+        ? State.data.snapDeck
+        : SnapData.starterDeck();
+      await Online.publishSnapDeck(myDeck);
+      // 相手を 探す
+      const opp = await Online.findSnapOpponent();
+      closeModal();
+      if (!opp) {
+        toast('いま 対戦相手が いません。CPU と 遊ぼう', 'warn');
+        return;
+      }
+      onlineOpp = opp;
+      snapMode = 'online';
+      toast(`${opp.name}(R${opp.rank}) と マッチング！`, 'ok');
+      show('snap');
+    } catch (e) {
+      closeModal();
+      console.error('[Online]', e);
+      toast('オンライン接続失敗', 'err');
+    }
   }
 
   /* ===== ずかん（157体一覧） =========================================== */
@@ -224,9 +292,19 @@ const UI = (() => {
     closeModal: () => closeModal(),
 
     // タイトル
-    startSnap: () => { backTarget = 'home'; show('snap'); },
+    startSnap: () => { snapMode = 'cpu'; backTarget = 'home'; show('snap'); },
+    startSnapCpu: () => { snapMode = 'cpu'; onlineOpp = null; backTarget = 'home'; show('snap'); },
+    startSnapOnline: () => { startOnlineMatch(); },
+    goDeck: () => goScreen('deck', 'home'),
     dexFromTitle: () => goScreen('dex', 'home'),
     settingsFromTitle: () => goScreen('settings', 'home'),
+
+    // デッキ編成
+    deckAdd: (d) => SnapDeck.addCard(d.id),
+    deckRemove: (d) => SnapDeck.removeCard(d.uid),
+    deckFilter: (d) => SnapDeck.setFilter(d.kind, d.value),
+    deckSave: () => SnapDeck.save(),
+    deckExit: () => SnapDeck.exit(),
 
     // ミュート/音量
     mute: () => {
@@ -266,6 +344,7 @@ const UI = (() => {
     snapUnplay: (d) => SnapUI.unplayCard(+d.uid),
     snapEndTurn: () => SnapUI.endTurn(),
     snapSnap: () => SnapUI.snap(),
+    snapRetreat: () => SnapUI.retreat(),
     snapRestart: () => SnapUI.restart(),
     snapExit: () => { SnapUI.exit(); show('home'); },
   };

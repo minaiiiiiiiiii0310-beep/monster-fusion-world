@@ -3,7 +3,7 @@
  *  Stale-While-Revalidate 戦略：素早く表示しつつ、裏で最新を取得して
  *  次回起動に反映。バージョン更新時は古いキャッシュを破棄。
  * =======================================================================*/
-const CACHE_VERSION = 'mfw-v7';
+const CACHE_VERSION = 'mfw-v8';
 const STATIC_ASSETS = [
   './',
   './index.html',
@@ -21,6 +21,7 @@ const STATIC_ASSETS = [
   './js/snap_locations.js',
   './js/snap_engine.js',
   './js/snap_cpu.js',
+  './js/snap_deck.js',
   './js/snap_ui.js',
   './js/firebase-config.js',
   './js/ui.js',

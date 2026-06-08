@@ -99,6 +99,10 @@ const SnapCPU = (() => {
     // planTurn は手札を仮想消費してしまうので、元に戻す
     G.hand.enemy = original;
     execute(plays);
+    // Snap! 宣言（毎ターン最後に判断）
+    if (SnapEngine.cpuShouldSnap()) {
+      SnapEngine.declareSnap('enemy');
+    }
   }
 
   return { takeTurn };
