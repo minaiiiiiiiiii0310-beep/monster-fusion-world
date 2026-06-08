@@ -31,7 +31,7 @@ const UI = (() => {
     return `
       <div class="${cls.join(' ')}" data-act="${opts.act || 'detail'}" data-uid="${mon.uid}">
         ${inParty ? '<div class="party-flag">出</div>' : ''}
-        <div class="mc-emoji">${s.emoji}</div>
+        <div class="mc-emoji">${typeof Art !== 'undefined' ? Art.imgTag(mon.species, s.emoji, { cls: 'mc-art' }) : s.emoji}</div>
         <div class="mc-name">${State.displayName(mon)}</div>
         <div class="mc-sub">Lv${mon.level} ${elBadge(mon)}</div>
         <div class="mc-hp"><span style="width:${pct(hp, st.hp)}%"></span></div>
@@ -77,7 +77,11 @@ const UI = (() => {
   function renderHome() {
     const has = State.data.wins > 0 || State.data.box.length > 3 || State.data.story.chapter > 0;
     const party = State.partyMons();
-    const emojis = party.map(m => `<span class="home-emoji">${DB.species(m.species).emoji}</span>`).join('');
+    const emojis = party.map(m => {
+      const sp = DB.species(m.species);
+      const inner = typeof Art !== 'undefined' ? Art.imgTag(m.species, sp.emoji, { cls: 'home-art' }) : sp.emoji;
+      return `<span class="home-emoji">${inner}</span>`;
+    }).join('');
     root.innerHTML = `
       <div class="home title">
         <h1 class="game-title">モンスター<br><span>ワールド</span></h1>
@@ -532,16 +536,19 @@ const UI = (() => {
       const rs = DB.species(resId);
       const newPlus = (a.plus || 0) + (b.plus || 0) + 1;
       const isNew = !State.data.seen[resId];
+      const aArt = typeof Art !== 'undefined' ? Art.imgTag(a.species, DB.species(a.species).emoji, { cls: 'fz-pimg' }) : DB.species(a.species).emoji;
+      const bArt = typeof Art !== 'undefined' ? Art.imgTag(b.species, DB.species(b.species).emoji, { cls: 'fz-pimg' }) : DB.species(b.species).emoji;
+      const rArt = typeof Art !== 'undefined' ? Art.imgTag(resId, rs.emoji, { cls: 'fz-rimg' }) : rs.emoji;
       preview = `
         <div class="fz-preview">
           <div class="fz-parents">
-            <span>${DB.species(a.species).emoji}</span>
+            <span class="fz-parent">${aArt}</span>
             <span class="fz-plus">＋</span>
-            <span>${DB.species(b.species).emoji}</span>
+            <span class="fz-parent">${bArt}</span>
           </div>
           <div class="fz-arrow">▼</div>
           <div class="fz-result">
-            <div class="fz-remoji">${rs.emoji}</div>
+            <div class="fz-remoji">${rArt}</div>
             <div class="fz-rname">${rs.name} <span class="plus">+${newPlus}</span></div>
             ${isNew ? '<div class="fz-new">★ あたらしい モンスター！</div>' : ''}
           </div>
@@ -588,7 +595,7 @@ const UI = (() => {
       const s = DB.species(id);
       const ok = State.data.seen[id];
       return `<div class="dex-cell ${ok ? '' : 'unseen'}">
-        <div class="dex-emoji">${ok ? s.emoji : '❓'}</div>
+        <div class="dex-emoji">${ok ? (typeof Art !== 'undefined' ? Art.imgTag(id, s.emoji, { cls: 'dex-art' }) : s.emoji) : '❓'}</div>
         <div class="dex-name">${ok ? s.name : '???'}</div></div>`;
     }).join('');
     root.innerHTML = `${header('ずかん')}
@@ -629,8 +636,16 @@ const UI = (() => {
       bs.dispHP[c.uid] = c.hp; bs.dispMP[c.uid] = c.mp;
     });
     pushLog((meta && meta.intro) || 'バトル かいし！');
-    show('battle');
-    beginInputPhase();
+    // AI画像があれば先読みしてから戦闘開始（無くてもすぐ進む）
+    const allSpecies = Array.from(new Set(
+      party.map(m => m.species).concat(defs.map(d => d.species))
+    ));
+    const start = () => { show('battle'); beginInputPhase(); };
+    if (typeof Art !== 'undefined' && Art.preload) {
+      Art.preload(allSpecies).then(start).catch(start);
+    } else {
+      start();
+    }
   }
 
   function startBattle(areaId) {
@@ -683,7 +698,7 @@ const UI = (() => {
             <span class="cb-lv">Lv${c.level}</span>
           </div>
           <div class="cb-portrait">
-            <div class="cb-emoji">${c.emoji}</div>
+            <div class="cb-art-wrap">${typeof Art !== 'undefined' ? Art.imgTag(c.species, c.emoji, { cls: 'cb-art' }) : `<span class="cb-emoji">${c.emoji}</span>`}</div>
             <div class="cb-el-badge" title="${el}">${elementIcon(el)}</div>
             ${rankLabel ? `<div class="cb-rank-badge">${rankLabel}</div>` : ''}
             ${buffs ? `<div class="cb-buffs">${buffs}</div>` : ''}
@@ -1431,6 +1446,21 @@ const UI = (() => {
       SoundFX.setVolumes(State.data.audio);
     }
     show('home');
+
+    // 初期パーティの AI 画像を先読み（あれば即表示・無ければ静かに失敗）
+    if (typeof Art !== 'undefined' && Art.preload) {
+      const party = State.partyMons().map(m => m.species);
+      Art.preload(party).then(() => {
+        // 1つでも見つかったら、まだ案内していなければ 2Dモード推奨をトーストで案内
+        if (Art.anyExists() && !State.data.aiArtToastShown) {
+          State.data.aiArtToastShown = true;
+          State.save();
+          setTimeout(() => {
+            toast('🎨 AI画像を検出！ せってい→バトル表示で 2Dカード推奨', 'ok', 4500);
+          }, 1800);
+        }
+      });
+    }
   }
 
   return { init, show, facility: onFacility, _fieldEncounter: onFieldEncounter };

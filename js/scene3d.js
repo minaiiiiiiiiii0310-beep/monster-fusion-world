@@ -2164,6 +2164,30 @@ const Scene3D = (() => {
     origin: buildOriginFamily,    // オリジン（究極）
   };
 
+  /* AI画像（assets/monsters/<id>.png）があればスプライトとして使う。
+   * 事前に Art.preload() で存在確認しておくことが前提。 */
+  function buildSpriteCreature(species, mats, decos) {
+    if (typeof Art === 'undefined') return null;
+    if (Art.has(species.id) !== true) return null;
+    const tex = Art.threeTexture(species.id);
+    if (!tex) return null;
+    const g = new THREE.Group();
+    const matSprite = new THREE.SpriteMaterial({
+      map: tex, transparent: true, alphaTest: 0.05,
+      depthWrite: false,
+    });
+    const sprite = new THREE.Sprite(matSprite);
+    // 体サイズ（ランクで大きくなる）
+    const baseSize = 2.0 + Math.min(species.rank, 7) * 0.18;
+    sprite.scale.set(baseSize, baseSize, 1);
+    sprite.position.y = baseSize * 0.5 + 0.1;
+    g.add(sprite);
+    mats.push(matSprite);
+    g.userData.top = baseSize + 0.2;
+    g.userData.isSprite = true;
+    return g;
+  }
+
   /* ---- 全体ビルド ----------------------------------------------------- */
   function buildCreature(species) {
     const m = [];
@@ -2171,6 +2195,22 @@ const Scene3D = (() => {
     const col = new THREE.Color(DB.ELEMENTS[species.el].color).getHex();
     const demon = species.el === 'dark';
     let g;
+    // 0. AI画像があれば最優先でスプライト化
+    g = buildSpriteCreature(species, m, decos);
+    if (g) {
+      // 属性/ランクフレアはまだ載せる（光輪・周回オーブ等）
+      const baseTop = g.userData.top;
+      addElementFlair(g, species.el, baseTop, m, decos);
+      addRankFlair(g, species.rank, col, baseTop, m, decos);
+      const s = 0.74 + Math.min(species.rank, 7) * 0.1;
+      g.scale.setScalar(s);
+      g.userData.glow = species.rank >= 4 ? new THREE.Color(DB.ELEMENTS[species.el].color) : null;
+      return {
+        group: g, mats: m, decos,
+        top: (baseTop + (species.rank >= 7 ? 0.35 : species.rank >= 5 ? 0.2 : 0.1)) * s,
+        glow: g.userData.glow, scale: s,
+      };
+    }
     // 系統別ビルダーが定義されていれば優先（モンスター個性を出す）
     const familyFn = FAMILY_BUILDERS[species.family];
     if (familyFn) {
