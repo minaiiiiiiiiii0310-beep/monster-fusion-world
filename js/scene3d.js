@@ -2232,7 +2232,7 @@ const Scene3D = (() => {
       entries.push({
         uid: c.uid, side, group: g, base: V(xs[i], 0, z), dir: side === 'ally' ? -1 : 1,
         phase: Math.random() * 6.28, top: built.top, mats: built.mats, glow: built.glow,
-        decos: built.decos, shadow,
+        decos: built.decos, shadow, family: sp.family, scale: built.scale,
         maxHP: c.maxHP, maxMP: c.maxMP,
         plate, hpFill: plate.querySelector('.pl-hp span'), mpFill: plate.querySelector('.pl-mp span'),
         anim: { attack: 0, hit: 0, hitKind: null, heal: 0, buff: 0, faint: 0 },
@@ -2317,8 +2317,50 @@ const Scene3D = (() => {
         y += Math.sin((1 - a.heal) * Math.PI) * 0.25; }
       // 強化
       if (a.buff > 0) { a.buff = Math.max(0, a.buff - dt / 0.6); eb = Math.max(eb, a.buff * 0.9); er = Math.max(er, a.buff * 0.2); }
-      // アイドル（ふわふわ）
-      const bob = e.dead ? 0 : Math.sin(clock * 2.2 + e.phase) * 0.09;
+      // アイドル（ふわふわ）— 系統ごとに微調整して個性を出す
+      let bob = 0, sway = 0;
+      let squishY = 1, squishXZ = 1;
+      let rotZ = 0;
+      if (!e.dead) {
+        const t = clock + e.phase;
+        switch (e.family) {
+          case 'sla': case 'mtl':  // スライム系: ぷるぷる
+            bob = Math.sin(t * 2.0) * 0.05;
+            squishY = 1 + Math.sin(t * 4.5) * 0.06;
+            squishXZ = 1 - (squishY - 1) * 0.5;
+            break;
+          case 'gho':  // ゴースト: 高めにふわふわ＋左右ドリフト
+            bob = Math.sin(t * 1.4) * 0.18 + 0.15;
+            sway = Math.sin(t * 0.8) * 0.1;
+            rotZ = Math.sin(t * 0.6) * 0.05;
+            break;
+          case 'ifr':  // 炎: 高速にゆらぐ
+            bob = Math.sin(t * 3.5) * 0.06;
+            squishY = 1 + Math.sin(t * 7) * 0.04;
+            squishXZ = 1 - (squishY - 1) * 0.3;
+            break;
+          case 'bug':  // 虫: 細かい震え
+            bob = Math.sin(t * 2.5) * 0.04;
+            sway = Math.sin(t * 6) * 0.02;
+            break;
+          case 'jwl': case 'mat':  // 結晶/岩: ほぼ動かない（重厚感）
+            bob = Math.sin(t * 1.5) * 0.025;
+            break;
+          case 'bir': case 'win': case 'fay': case 'stb':  // 鳥: 翼の上下感
+            bob = Math.sin(t * 3.0) * 0.12;
+            break;
+          case 'lig': case 'god': case 'titan': case 'origin':  // 神: ゆったり浮遊
+            bob = Math.sin(t * 1.2) * 0.12 + 0.08;
+            rotZ = Math.sin(t * 0.4) * 0.04;
+            break;
+          case 'aqu':  // 水生: 横にゆらゆら（泳ぐ感）
+            sway = Math.sin(t * 1.5) * 0.08;
+            bob = Math.cos(t * 1.5) * 0.05;
+            break;
+          default:  // ふつうの獣・人型・ドラゴン等
+            bob = Math.sin(t * 2.2) * 0.09;
+        }
+      }
       // 気絶
       if (e.dead) {
         e.group.rotation.x = Math.min(Math.PI / 2.1, e.group.rotation.x + dt * 2.5);
@@ -2326,9 +2368,12 @@ const Scene3D = (() => {
         if (e.shadow) e.shadow.material.opacity = Math.max(0, e.shadow.material.opacity - dt * 1.5);
       } else {
         e.group.rotation.x = 0;
+        e.group.rotation.z = rotZ;
+        // squish: 元のスケール(e.scale)に係数を掛ける
+        e.group.scale.set(e.scale * squishXZ, e.scale * squishY, e.scale * squishXZ);
       }
 
-      e.group.position.set(x, y + bob, z);
+      e.group.position.set(x + sway, y + bob, z);
       // シャドウは地面に固定して x,z だけ追従
       if (e.shadow) {
         e.shadow.position.x = x;
