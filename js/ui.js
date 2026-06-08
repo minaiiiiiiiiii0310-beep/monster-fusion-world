@@ -62,6 +62,15 @@ const UI = (() => {
     else if (name === 'settings') renderSettings();
     else if (name === 'battle') renderBattle();
     window.scrollTo(0, 0);
+    // BGM をシーンに合わせて切り替え
+    if (typeof SoundFX !== 'undefined') {
+      if (name === 'home') SoundFX.bgm('town');
+      else if (name === 'town') SoundFX.bgm('town');
+      else if (name === 'world') SoundFX.bgm('field');
+      else if (name === 'field') SoundFX.bgm('field');
+      else if (name === 'battle') SoundFX.bgm('battle');
+      else SoundFX.bgm('town');
+    }
   }
 
   /* ===== タイトル ====================================================== */
@@ -829,9 +838,15 @@ const UI = (() => {
           // 魔法スキルは属性別、物理は通常の赤バースト
           const magicEl = st.skillType === 'magic' ? st.el : null;
           Scene3D.hit(st.targetUid, st.fx, magicEl, st.attackerUid);
+          if (typeof SoundFX !== 'undefined') {
+            if (st.skillType === 'magic' && st.el) SoundFX.sfx('spell', { el: st.el });
+            else SoundFX.sfx(st.fx === 'crit' ? 'crit' : 'hit');
+          }
         }
-        else if (st.fx === 'heal') Scene3D.heal(st.targetUid);
-        else if (st.fx === 'buff') Scene3D.buff(st.targetUid);
+        else if (st.fx === 'heal') { Scene3D.heal(st.targetUid);
+          if (typeof SoundFX !== 'undefined') SoundFX.sfx('heal'); }
+        else if (st.fx === 'buff') { Scene3D.buff(st.targetUid);
+          if (typeof SoundFX !== 'undefined') SoundFX.sfx('buff'); }
         Scene3D.updateBars(bs.dispHP, bs.dispMP);
         if (st.amount != null && st.targetUid != null) {
           Scene3D.pop(st.targetUid, (st.fx === 'heal' ? '+' : '') + st.amount,
@@ -1016,6 +1031,12 @@ const UI = (() => {
     home: () => show('home'),
     town: () => show('town'),
     back: () => show(backTarget),
+    mute: () => {
+      if (typeof SoundFX === 'undefined') return;
+      SoundFX.setMuted(!SoundFX.isMuted());
+      const btn = document.getElementById('mute-btn');
+      if (btn) btn.textContent = SoundFX.isMuted() ? '🔇' : '🔊';
+    },
     box: () => show('box'),
     fusion: () => { fuseA = null; fuseB = null; show('fusion'); },
     explore: () => show('explore'),
@@ -1167,6 +1188,13 @@ const UI = (() => {
     const t = e.target.closest('[data-act]');
     if (!t) return;
     const act = t.dataset.act;
+    // 初回タップで AudioContext を unlock し、UI 効果音を鳴らす
+    if (typeof SoundFX !== 'undefined') {
+      SoundFX.unlock();
+      if (act === 'closeFacility' || act === 'cancel' || act === 'back') SoundFX.sfx('cancel');
+      else if (act === 'mute') SoundFX.sfx('click');
+      else SoundFX.sfx('click');
+    }
     if (ACTIONS[act]) { e.preventDefault(); ACTIONS[act](t.dataset, t, e); }
   }
 

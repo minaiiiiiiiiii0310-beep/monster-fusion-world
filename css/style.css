@@ -366,6 +366,19 @@ h1,h2,h3{ margin:0 0 10px; }
 }
 
 /* ヒント: 縦持ちで開いた人向けの“横向き推奨”バナー（小画面の縦のみ） */
+.mute-btn{
+  position:fixed; top:env(safe-area-inset-top, 6px); right:8px; z-index:9998;
+  width:36px; height:36px; border-radius:50%;
+  background:#0b0f1cdd; border:1px solid var(--line); color:var(--text);
+  font-size:16px; cursor:pointer; padding:0; line-height:1;
+  display:flex; align-items:center; justify-content:center;
+  backdrop-filter:blur(2px);
+}
+.mute-btn:active{ transform:scale(.92); }
+@media (orientation: landscape) and (max-height: 600px) {
+  .mute-btn{ width:30px; height:30px; font-size:13px; top:4px; right:4px; }
+}
+
 .rotate-hint{ display:none; position:fixed; left:50%; bottom:8px;
   transform:translateX(-50%); background:#0b0f1cee; border:1px solid var(--line);
   color:var(--text); border-radius:12px; padding:6px 12px; font-size:11px;
