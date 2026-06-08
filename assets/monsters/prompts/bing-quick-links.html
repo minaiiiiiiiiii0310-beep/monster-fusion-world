@@ -1,0 +1,309 @@
+<!DOCTYPE html>
+<html lang="ja"><head>
+<meta charset="UTF-8">
+<title>Bing Image Creator クイックリンク — モンスター生成</title>
+<style>
+  body { font-family: -apple-system, "Yu Gothic", sans-serif;
+         background: #10131c; color: #e8ecf6; padding: 16px; max-width: 900px; margin: 0 auto; }
+  h1 { color: #ffd23d; }
+  h2 { color: #5b8cff; border-bottom: 1px solid #33405f; padding-bottom: 4px; margin-top: 24px; }
+  .item { display: flex; align-items: center; gap: 12px; padding: 8px; border-bottom: 1px solid #1d2438; }
+  .id { font-family: monospace; color: #ffd23d; width: 110px; font-weight: 700; }
+  .desc { flex: 1; color: #c5cde0; font-size: 13px; }
+  .btn { background: #5b8cff; color: white; padding: 6px 14px; border-radius: 8px;
+         text-decoration: none; font-size: 13px; font-weight: 700;
+         white-space: nowrap; }
+  .btn:hover { background: #3a64e0; }
+  .hint { background: #1d2438; padding: 10px 14px; border-radius: 8px;
+          font-size: 13px; color: #9aa6c4; margin-bottom: 16px; }
+  .hint code { background: #0a0d18; padding: 2px 6px; border-radius: 4px; color: #ffd23d; }
+</style>
+</head><body>
+<h1>🎨 Bing Image Creator クイックリンク</h1>
+<div class="hint">
+  <p>各 [生成] ボタンをクリックすると <strong>Bing Image Creator</strong> がプロンプト入力済みで開きます。
+  <strong>Microsoft アカウントへのログイン</strong>が必要です（無料・ブースト1日15枚）。</p>
+  <p>生成された画像は名前を <code>&lt;ID&gt;.png</code> （例: <code>sla1.png</code>）にリネームし、
+  <code>assets/monsters/</code> に保存してください。サイズが大きすぎる場合は
+  <code>scripts/install-ai-art.bat</code> を使うと自動で 512×512 にリサイズ・配置します。</p>
+</div>
+
+<script>
+  // 共通サフィックス
+  const SFX = ", chibi cartoon monster, full body, centered, transparent background, anime style with soft cel-shading and bold black outlines, vibrant colors, mobile game card art, no text or watermark";
+  // [ [id, japanese-name, prompt], ... ]
+  const ITEMS = [
+    // ==== スターター6 ====
+    ["__starter__", "★ スターター6種", "", "h"],
+    ["sla1", "スラ", "A tiny blue slime drop with two big sparkling eyes and cheerful smile"],
+    ["bea1", "コボル", "A small brown wolf cub with sharp fangs and yellow eyes"],
+    ["bir1", "ピヨル", "A fluffy yellow baby chick with tiny wings and big eyes"],
+    ["pla1", "マンドラ", "A small green mandrake plant creature with leafy hair and arms"],
+    ["cat1", "ニャン", "A cute orange tabby kitten in playful pose"],
+    ["mus1", "キノピ", "A red mushroom monster with white spots and cute face on stem"],
+
+    // ==== スライム sla ====
+    ["__sla__", "🟦 スライム sla", "", "h"],
+    ["sla2", "ベススラ", "A medium royal blue slime with two eyes and small white horns"],
+    ["sla3", "スラナイト", "A blue slime knight wearing silver armor and holding a small sword"],
+    ["sla4", "スラキング", "A large blue slime king with golden crown and majestic purple cape"],
+    ["sla5", "スラゴッド", "A divine blue slime god radiating holy light with golden halo"],
+
+    // ==== オオカミ bea ====
+    ["__bea__", "🐺 オオカミ bea", "", "h"],
+    ["bea2", "ガルー", "A teen brown wolf with fierce expression and battle stance"],
+    ["bea3", "ウルフェン", "An adult gray wolf with battle scars and golden eyes"],
+    ["bea4", "フェンリル", "A massive silver Fenrir wolf with icy blue mane and legendary aura"],
+    ["bea5", "ベヒモス", "A colossal black behemoth wolf-beast with horns and red glowing eyes"],
+
+    // ==== 鳥 bir ====
+    ["__bir__", "🦅 鳥 bir", "", "h"],
+    ["bir2", "ホークル", "A sky-blue hawk with spread wings and sharp eyes"],
+    ["bir3", "グリフォ", "A noble griffon with lion body and eagle head and golden feathers"],
+    ["bir4", "ロックチョウ", "A giant Roc bird with massive golden feathers and storm clouds"],
+    ["bir5", "ガルーダ", "A majestic divine Garuda eagle with rainbow wings and holy aura"],
+
+    // ==== 植物 pla ====
+    ["__pla__", "🌺 植物 pla", "", "h"],
+    ["pla2", "ラフレシ", "A giant red Rafflesia flower monster with eyes in the petals"],
+    ["pla3", "トレント", "A wooden treant tree-man with branch arms and bark face"],
+    ["pla4", "エルダー", "An ancient Elder treant with glowing green runes and thick bark"],
+    ["pla5", "ワルツリー", "A wicked dark treelord with twisted gnarled branches and red eyes"],
+
+    // ==== 虫 bug ====
+    ["__bug__", "🪲 虫 bug", "", "h"],
+    ["bug1", "アリゲ", "A giant red warrior ant with mandibles"],
+    ["bug2", "ビートル", "A rhinoceros beetle with shiny iridescent carapace"],
+    ["bug3", "デスモス", "A death moth with skull pattern on wings"],
+    ["bug4", "ホーネト", "A giant yellow hornet with venom stinger"],
+    ["bug5", "デスビー", "A queen demon bee with red eyes and royal crown"],
+
+    // ==== アンデッド und ====
+    ["__und__", "💀 アンデッド und", "", "h"],
+    ["und1", "ホネオ", "A small skeleton with rusty sword"],
+    ["und2", "スケルト", "A skeleton warrior with iron shield and helmet"],
+    ["und3", "リッチ", "A hooded lich with glowing purple eyes and ornate staff"],
+    ["und4", "デスナイ", "A dark death knight in black armor with red glowing visor"],
+    ["und5", "デュラハン", "A headless Dullahan rider holding his own head"],
+
+    // ==== 水生 aqu ====
+    ["__aqu__", "🐟 水生 aqu", "", "h"],
+    ["aqu1", "サカナ", "A cute orange koi fish with big eyes and bubbles"],
+    ["aqu2", "マーマン", "A merman warrior with trident and blue fins"],
+    ["aqu3", "クラーケ", "A young purple kraken with curling tentacles and big eyes"],
+    ["aqu4", "リヴァイ", "A massive blue Leviathan sea serpent with fins along back"],
+    ["aqu5", "シードラ", "A divine sea dragon with crown of coral and pearl scales"],
+
+    // ==== ドラゴン dra ====
+    ["__dra__", "🐉 ドラゴン dra", "", "h"],
+    ["dra1", "ドラポン", "A cute baby red dragon hatchling with tiny wings"],
+    ["dra2", "ドラグ", "A teen red dragon with developing wings and fierce expression"],
+    ["dra3", "ドラグーン", "An adult red dragon dragoon with spread wings breathing fire"],
+    ["dra4", "ティラノ", "A massive T-rex like dragon tyrant with red scales"],
+    ["dra5", "ファヴニル", "A legendary Fafnir dragon with golden scales and rainbow aura"],
+
+    // ==== 悪魔 dev ====
+    ["__dev__", "😈 悪魔 dev", "", "h"],
+    ["dev1", "コアク", "A small purple imp with tiny bat wings and devil horns"],
+    ["dev2", "デビラ", "A teen devil with curved horns and pitchfork"],
+    ["dev3", "マオウ", "A demon lord Maou with massive horns and glowing red eyes"],
+    ["dev4", "アークデ", "An arch-demon with multiple bat wings and dark robe"],
+    ["dev5", "ルシフェ", "The supreme devil Lucifer in dark elegance with six wings"],
+
+    // ==== ゴーレム mat ====
+    ["__mat__", "🗿 ゴーレム mat", "", "h"],
+    ["mat1", "ストン", "A small stone gargoyle with glowing eyes"],
+    ["mat2", "ゴーレ", "A rocky golem with cracks revealing glowing core"],
+    ["mat3", "アイゴレ", "An iron golem with glowing eyes and steel plates"],
+    ["mat4", "タイタロ", "A titanic stone titan with crystal core glowing in chest"],
+    ["mat5", "コロッサ", "A colossus mountain-sized golem with ancient runes"],
+
+    // ==== 炎の精 ifr ====
+    ["__ifr__", "🔥 炎の精 ifr", "", "h"],
+    ["ifr1", "メラゴ", "A small fire spirit shaped like a flame with eyes"],
+    ["ifr2", "フレイム", "A fire elemental with body of orange flames"],
+    ["ifr3", "インフェ", "An inferno demon wreathed in red flames"],
+    ["ifr4", "ヴァルカ", "A Vulcan god with lava cracks across stone skin"],
+    ["ifr5", "イフリト", "The great Ifrit king of fire with horns and burning eyes"],
+
+    // ==== 氷ビースト ice ====
+    ["__ice__", "❄️ 氷ビースト ice", "", "h"],
+    ["ice1", "フブキ", "A small white snow fox with icy fur"],
+    ["ice2", "ブリザド", "A frost beast with icy blue fur and breath of cold mist"],
+    ["ice3", "アイスゴ", "An ice golem with crystal armor and frosty aura"],
+    ["ice4", "フロスト", "A frost giant with massive ice club and white beard"],
+    ["ice5", "ヨトゥン", "The giant Jotunn lord of ice with horns of frost"],
+
+    // ==== 雷獣 thu ====
+    ["__thu__", "⚡ 雷獣 thu", "", "h"],
+    ["thu1", "スパーク", "A small electric mouse-like creature with lightning tail"],
+    ["thu2", "ボルト", "A lightning fox with crackling yellow fur"],
+    ["thu3", "サンダ", "A thunder beast with mane of lightning sparks"],
+    ["thu4", "ライジン", "The Japanese thunder god Raijin holding drums of thunder"],
+    ["thu5", "トール", "The mighty Thor with hammer Mjolnir and lightning"],
+
+    // ==== 天使 lig ====
+    ["__lig__", "😇 天使 lig", "", "h"],
+    ["lig1", "ピクシー", "A tiny pixie with butterfly wings and magic wand"],
+    ["lig2", "エンジェ", "A kind angel with white robe and golden halo"],
+    ["lig3", "セラフ", "A seraph with six glowing wings and flaming sword"],
+    ["lig4", "アークエ", "An archangel in golden armor with massive white wings"],
+    ["lig5", "メタトロ", "Metatron supreme angel of light with cosmic robes"],
+
+    // ==== ユニコーン uni ====
+    ["__uni__", "🦄 ユニコーン uni", "", "h"],
+    ["uni1", "ユニコ", "A young white unicorn pony with pastel mane"],
+    ["uni2", "ペガサ", "A noble pegasus with feathered wings spread"],
+    ["uni3", "キリン", "A Kirin Asian unicorn with golden scales and flowing mane"],
+    ["uni4", "アルビオ", "An albino royal unicorn with golden horn and silver hooves"],
+    ["uni5", "ホーリド", "A holy divine unicorn radiating pure white light"],
+
+    // ==== キノコ mus ====
+    ["__mus__", "🍄 キノコ mus", "", "h"],
+    ["mus2", "マッシュ", "A mushroom warrior with arms and red cap shield"],
+    ["mus3", "モーモン", "A giant mushroom with multiple eyes on the cap"],
+    ["mus4", "スポア", "A spore mushroom releasing magic dust clouds"],
+    ["mus5", "マイコ", "The mushroom king Mycelion with cap crown and royal cape"],
+
+    // ==== ゴースト gho ====
+    ["__gho__", "👻 ゴースト gho", "", "h"],
+    ["gho1", "オバケ", "A cute white ghost with tongue sticking out"],
+    ["gho2", "ゴースト", "A translucent ghost with sad eyes and floating wisps"],
+    ["gho3", "ファント", "A phantom in tattered dark cloak"],
+    ["gho4", "レイス", "A wraith with shadowy form and glowing purple eyes"],
+    ["gho5", "リーパー", "A grim reaper with scythe and dark hooded robe"],
+
+    // ==== 岩獣 roc ====
+    ["__roc__", "🪨 岩獣 roc", "", "h"],
+    ["roc1", "ロッキ", "A small rocky boar with stone tusks"],
+    ["roc2", "ストガル", "A stone wolf with rock spikes along back"],
+    ["roc3", "ロックゴ", "A stone rhino with crystal horn and armored hide"],
+    ["roc4", "ベヒロク", "A behemoth made of granite with crystal embedded body"],
+    ["roc5", "グラニト", "An ancient granite titan beast with mossy stone armor"],
+
+    // ==== 風妖 win ====
+    ["__win__", "🌪️ 風妖 win", "", "h"],
+    ["win1", "ウィスプ", "A wind wisp spirit with feathered tail and ethereal body"],
+    ["win2", "シルフ", "A Sylph fairy of wind with translucent wings"],
+    ["win3", "テンペス", "A tempest spirit surrounded by swirling cyclone"],
+    ["win4", "ハルピュ", "A harpy with bird wings and sharp claws"],
+    ["win5", "バハール", "A desert wind storm spirit with sand swirling around"],
+
+    // ==== 蛇竜 ser ====
+    ["__ser__", "🐍 蛇竜 ser", "", "h"],
+    ["ser1", "ナーガ", "A small water naga snake with blue scales"],
+    ["ser2", "ヒュドラ", "A three-headed Hydra with green scales"],
+    ["ser3", "ウミドラ", "A sea dragon with fins along serpentine body"],
+    ["ser4", "ティアマ", "Tiamat the chaos dragon goddess with five heads"],
+    ["ser5", "ヨルム", "Jormungandr the world serpent encircling earth"],
+
+    // ==== 悪魔獣 dmn ====
+    ["__dmn__", "🐐 悪魔獣 dmn", "", "h"],
+    ["dmn1", "バァル", "A small horned demon goat with red glowing eyes"],
+    ["dmn2", "ベリト", "A fiendish boar with red eyes and tusks"],
+    ["dmn3", "ガープ", "A demon wolf with shadow flames trailing behind"],
+    ["dmn4", "アモン", "Amon a dragon-headed demon prince in dark robes"],
+    ["dmn5", "バフォメ", "Baphomet a goat-headed demon lord on a throne"],
+
+    // ==== 妖精 fay ====
+    ["__fay__", "🧚 妖精 fay", "", "h"],
+    ["fay1", "コビト", "A tiny hat-wearing dwarf with a beard"],
+    ["fay2", "ヨウセイ", "A delicate flower fairy with petal wings"],
+    ["fay3", "ティンク", "Tinker a sparkle fairy radiating magic dust"],
+    ["fay4", "オベロン", "Oberon king of fairies with leaf crown"],
+    ["fay5", "ティタニ", "Titania fairy queen with butterfly crown and scepter"],
+
+    // ==== 亀 tur ====
+    ["__tur__", "🐢 亀 tur", "", "h"],
+    ["tur1", "カメっこ", "A tiny green turtle with cute big eyes"],
+    ["tur2", "ガメラ", "A giant Gamera turtle with spiked shell"],
+    ["tur3", "ガーディ", "An armored turtle guardian with stone shell"],
+    ["tur4", "アスピド", "An Aspidochelone mountain-sized turtle island"],
+    ["tur5", "ゲンブ", "Genbu the black tortoise of the north divine sacred beast"],
+
+    // ==== 猫 cat ====
+    ["__cat__", "🐱 猫 cat", "", "h"],
+    ["cat2", "キャット", "A mischievous alley cat with sly grin"],
+    ["cat3", "ワーキャ", "A were-cat humanoid feline warrior with claws"],
+    ["cat4", "ケットシ", "A Cait Sith fairy cat with boots and feathered hat"],
+    ["cat5", "バステト", "Egyptian goddess Bastet a divine cat-headed queen"],
+
+    // ==== 石像鳥 stb ====
+    ["__stb__", "🗿 石像鳥 stb", "", "h"],
+    ["stb1", "イシドリ", "A small stone bird statue come to life"],
+    ["stb2", "ガーゴイ", "A gargoyle with stone wings and grim expression"],
+    ["stb3", "ロクチョ", "A rock Roc bird with mossy granite feathers"],
+    ["stb4", "バジリス", "A basilisk reptile bird with petrifying gaze"],
+    ["stb5", "コカトリ", "A cockatrice rooster-reptile chimera with serpent tail"],
+
+    // ==== 光竜 anu ====
+    ["__anu__", "🐲 光竜 anu", "", "h"],
+    ["anu1", "ヒカリ竜", "A small white light dragon glowing softly"],
+    ["anu2", "セイント", "A holy saint dragon with halo above head"],
+    ["anu3", "ホリド竜", "A divine sacred dragon with golden scales"],
+    ["anu4", "ドラゴ神", "A dragon god with radiant aura and crystal horns"],
+    ["anu5", "バハムー", "Bahamut supreme dragon king with celestial wings"],
+
+    // ==== メタル mtl ====
+    ["__mtl__", "🥈 メタル mtl", "", "h"],
+    ["mtl1", "メタッコ", "A tiny silver metal slime with shiny chrome surface"],
+    ["mtl2", "メタスラ", "A chrome metal slime with reflective mirror finish"],
+    ["mtl3", "はぐレタル", "A platinum slime with elusive sparkle effect"],
+    ["mtl4", "メタキング", "A golden metal slime king with crown of gems"],
+    ["mtl5", "メタゴッド", "A divine metal slime god with rainbow chrome iridescence"],
+
+    // ==== 結晶 jwl ====
+    ["__jwl__", "💎 結晶 jwl", "", "h"],
+    ["jwl1", "ジュエル", "A small ruby gem creature with crystal facets"],
+    ["jwl2", "クリスタ", "A crystal cluster monster with glowing core"],
+    ["jwl3", "ダイヤモ", "A diamond golem with faceted crystal body"],
+    ["jwl4", "プリズム", "A prismatic rainbow crystal beast with spectral aura"],
+    ["jwl5", "ゴドジェム", "A divine gem god embodying all elements with prismatic crown"],
+
+    // ==== 属性神 ====
+    ["__god__", "👑 属性神 god_* (rank 6)", "", "h"],
+    ["god_fire", "イグニス", "Epic divine being Ignis fire god with crown of flames and burning robes"],
+    ["god_water", "アクアス", "Epic divine being Aquas water god seated on ocean throne with trident"],
+    ["god_grass", "フローラ", "Epic divine being Flora nature goddess of blooming life surrounded by flowers"],
+    ["god_wind", "テンペスト", "Epic divine being Tempest wind god with vortex aura and feathered cloak"],
+    ["god_earth", "ガイア", "Epic divine being Gaia earth mother with mountain crown and natural armor"],
+    ["god_thunder", "フルゴル", "Epic divine being Fulgur thunder god with lightning bolts radiating"],
+    ["god_light", "ルクス", "Epic divine being Lux god of light with blinding white aura and golden raiment"],
+    ["god_dark", "ノクス", "Epic divine being Nox god of darkness with void aura and shadow tendrils"],
+
+    // ==== 巨神 ====
+    ["__titan__", "🌌 巨神 titan_* (rank 7)", "", "h"],
+    ["titan_fire", "スルト", "Colossal mythic titan Surtr fire giant with flaming sword and burning skin"],
+    ["titan_water", "ポセイド", "Colossal mythic titan Poseidon sea god with golden trident and crown of coral"],
+    ["titan_grass", "ユグドラ", "Colossal mythic titan Yggdrasil world tree with branches reaching into cosmos"],
+    ["titan_wind", "ジン", "Colossal mythic titan Djinn wind emerging from giant lamp with storm clouds"],
+    ["titan_earth", "アトラス", "Colossal mythic titan Atlas earth holding the sky on his shoulders"],
+    ["titan_thunder", "ゼウス", "Colossal mythic titan Zeus thunder king with lightning bolts and golden throne"],
+    ["titan_light", "ソル", "Colossal mythic titan Sol sun god with burning corona and golden chariot"],
+    ["titan_dark", "ニュクス", "Colossal mythic titan Nyx night goddess with starry veil and crescent moon"],
+
+    // ==== オリジン ====
+    ["__origin__", "🌟 オリジン (rank 7)", "", "h"],
+    ["origin", "オリジン", "Cosmic ultimate being Origin the prismatic god containing all 8 elements with rainbow wings and divine crown of stars, beyond godhood final form"],
+  ];
+
+  const out = document.body;
+  ITEMS.forEach(([id, name, desc, kind]) => {
+    if (kind === 'h') {
+      const h = document.createElement('h2');
+      h.textContent = name;
+      out.appendChild(h);
+      return;
+    }
+    const row = document.createElement('div');
+    row.className = 'item';
+    const fullPrompt = desc + SFX;
+    const url = 'https://www.bing.com/images/create?q=' + encodeURIComponent(fullPrompt);
+    row.innerHTML =
+      `<span class="id">${id}.png</span>` +
+      `<span class="desc"><b>${name}</b><br>${desc}</span>` +
+      `<a class="btn" href="${url}" target="_blank" rel="noopener">[生成 →]</a>`;
+    out.appendChild(row);
+  });
+</script>
+</body></html>

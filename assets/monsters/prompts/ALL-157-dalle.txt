@@ -1,0 +1,247 @@
+# ================================================================
+# DALL-E 3 / ChatGPT / Bing Image Creator 用プロンプト集（全157種）
+#
+# 使い方:
+#   1. ChatGPT (Plus) または Bing Image Creator を開く
+#   2. 下のプロンプトを1つコピーして送信
+#   3. 4枚出るので 気に入ったものを ダウンロード
+#   4. ファイル名を <種族ID>.png にリネーム (例: sla1.png)
+#   5. assets/monsters/ に配置
+#
+# DALL-E の特徴:
+#   ・自然な英文で書くと素直に従う
+#   ・「centered, no text, transparent background」を明記
+#   ・1:1 比率は自動的に正方形 1024x1024
+# ================================================================
+
+# ==== スターター6 ====
+[sla1] A chibi cartoon monster: a tiny blue slime drop with two big sparkling eyes and a cheerful smile, full body, centered, transparent background, anime style with soft cel-shading and bold black outlines, vibrant colors, like a mobile game card art, no text or watermark, square 1:1.
+[bea1] A chibi cartoon monster: a small brown wolf cub with sharp fangs and bright yellow eyes, full body, centered, transparent background, anime style with soft cel-shading and bold black outlines, vibrant colors, like a mobile game card art, no text or watermark, square 1:1.
+[bir1] A chibi cartoon monster: a fluffy yellow baby chick with tiny wings and big round eyes, full body, centered, transparent background, anime style with soft cel-shading and bold black outlines, vibrant colors, like a mobile game card art, no text or watermark, square 1:1.
+[pla1] A chibi cartoon monster: a small green mandrake plant creature with leafy hair and little arms, full body, centered, transparent background, anime style with soft cel-shading and bold black outlines, vibrant colors, like a mobile game card art, no text or watermark, square 1:1.
+[cat1] A chibi cartoon monster: a cute orange tabby kitten in a playful pose, full body, centered, transparent background, anime style with soft cel-shading and bold black outlines, vibrant colors, like a mobile game card art, no text or watermark, square 1:1.
+[mus1] A chibi cartoon monster: a red mushroom monster with white spots on its cap and a cute face on the white stem, full body, centered, transparent background, anime style with soft cel-shading and bold black outlines, vibrant colors, like a mobile game card art, no text or watermark, square 1:1.
+
+# ==== スライム sla ====
+[sla1] tiny blue slime drop with two big sparkling eyes and cheerful smile
+[sla2] medium royal blue slime with two eyes and small white horns
+[sla3] blue slime knight wearing silver armor and holding a small sword
+[sla4] large blue slime king with golden crown and majestic purple cape
+[sla5] divine blue slime god radiating holy light with golden halo
+
+# ==== オオカミ bea ====
+[bea1] small brown wolf cub with sharp fangs and yellow eyes
+[bea2] teen brown wolf with fierce expression and battle stance
+[bea3] adult gray wolf with battle scars and golden eyes
+[bea4] massive silver Fenrir wolf with icy blue mane and legendary aura
+[bea5] colossal black behemoth wolf-beast with horns and red glowing eyes
+
+# ==== 鳥 bir ====
+[bir1] fluffy yellow baby chick with tiny wings and big eyes
+[bir2] sky-blue hawk with spread wings and sharp eyes
+[bir3] noble griffon with lion body and eagle head and golden feathers
+[bir4] giant Roc bird with massive golden feathers and storm clouds
+[bir5] majestic divine Garuda eagle with rainbow wings and holy aura
+
+# ==== 植物 pla ====
+[pla1] small green mandrake plant creature with leafy hair and arms
+[pla2] giant red Rafflesia flower monster with eyes in the petals
+[pla3] wooden treant tree-man with branch arms and bark face
+[pla4] ancient Elder treant with glowing green runes and thick bark
+[pla5] wicked dark treelord with twisted gnarled branches and red eyes
+
+# ==== 虫 bug ====
+[bug1] giant red warrior ant with mandibles
+[bug2] rhinoceros beetle with shiny iridescent carapace
+[bug3] death moth with skull pattern on wings
+[bug4] giant yellow hornet with venom stinger
+[bug5] queen demon bee with red eyes and royal crown
+
+# ==== アンデッド und ====
+[und1] small skeleton with rusty sword
+[und2] skeleton warrior with iron shield and helmet
+[und3] hooded lich with glowing purple eyes and ornate staff
+[und4] dark death knight in black armor with red glowing visor
+[und5] headless Dullahan rider holding his own head
+
+# ==== 水生 aqu ====
+[aqu1] cute orange koi fish with big eyes and bubbles
+[aqu2] merman warrior with trident and blue fins
+[aqu3] young purple kraken with curling tentacles and big eyes
+[aqu4] massive blue Leviathan sea serpent with fins along back
+[aqu5] divine sea dragon with crown of coral and pearl scales
+
+# ==== ドラゴン dra ====
+[dra1] cute baby red dragon hatchling with tiny wings
+[dra2] teen red dragon with developing wings and fierce expression
+[dra3] adult red dragon dragoon with spread wings breathing fire
+[dra4] massive T-rex like dragon tyrant with red scales
+[dra5] legendary Fafnir dragon with golden scales and rainbow aura
+
+# ==== 悪魔 dev ====
+[dev1] small purple imp with tiny bat wings and devil horns
+[dev2] teen devil with curved horns and pitchfork
+[dev3] demon lord Maou with massive horns and glowing red eyes
+[dev4] arch-demon with multiple bat wings and dark robe
+[dev5] supreme devil Lucifer in dark elegance with six wings
+
+# ==== ゴーレム mat ====
+[mat1] small stone gargoyle with glowing eyes
+[mat2] rocky golem with cracks revealing glowing core
+[mat3] iron golem with glowing eyes and steel plates
+[mat4] titanic stone titan with crystal core glowing in chest
+[mat5] colossus mountain-sized golem with ancient runes
+
+# ==== 炎の精 ifr ====
+[ifr1] small fire spirit shaped like a flame with eyes
+[ifr2] fire elemental with body of orange flames
+[ifr3] inferno demon wreathed in red flames
+[ifr4] Vulcan god with lava cracks across stone skin
+[ifr5] great Ifrit king of fire with horns and burning eyes
+
+# ==== 氷ビースト ice ====
+[ice1] small white snow fox with icy fur
+[ice2] frost beast with icy blue fur and breath of cold mist
+[ice3] ice golem with crystal armor and frosty aura
+[ice4] frost giant with massive ice club and white beard
+[ice5] giant Jotunn lord of ice with horns of frost
+
+# ==== 雷獣 thu ====
+[thu1] small electric mouse-like creature with lightning tail
+[thu2] lightning fox with crackling yellow fur
+[thu3] thunder beast with mane of lightning sparks
+[thu4] Japanese thunder god Raijin holding drums of thunder
+[thu5] mighty Thor with hammer Mjolnir and lightning
+
+# ==== 天使 lig ====
+[lig1] tiny pixie with butterfly wings and magic wand
+[lig2] kind angel with white robe and golden halo
+[lig3] seraph with six glowing wings and flaming sword
+[lig4] archangel in golden armor with massive white wings
+[lig5] Metatron supreme angel of light with cosmic robes
+
+# ==== ユニコーン uni ====
+[uni1] young white unicorn pony with pastel mane
+[uni2] noble pegasus with feathered wings spread
+[uni3] Kirin Asian unicorn with golden scales and flowing mane
+[uni4] albino royal unicorn with golden horn and silver hooves
+[uni5] holy divine unicorn radiating pure white light
+
+# ==== キノコ mus ====
+[mus1] red mushroom monster with white spots and cute face on stem
+[mus2] mushroom warrior with arms and red cap shield
+[mus3] giant mushroom with multiple eyes on the cap
+[mus4] spore mushroom releasing magic dust clouds
+[mus5] mushroom king Mycelion with cap crown and royal cape
+
+# ==== ゴースト gho ====
+[gho1] cute white ghost with tongue sticking out
+[gho2] translucent ghost with sad eyes and floating wisps
+[gho3] phantom in tattered dark cloak
+[gho4] wraith with shadowy form and glowing purple eyes
+[gho5] grim reaper with scythe and dark hooded robe
+
+# ==== 岩獣 roc ====
+[roc1] small rocky boar with stone tusks
+[roc2] stone wolf with rock spikes along back
+[roc3] stone rhino with crystal horn and armored hide
+[roc4] behemoth made of granite with crystal embedded body
+[roc5] ancient granite titan beast with mossy stone armor
+
+# ==== 風妖 win ====
+[win1] wind wisp spirit with feathered tail and ethereal body
+[win2] Sylph fairy of wind with translucent wings
+[win3] tempest spirit surrounded by swirling cyclone
+[win4] harpy with bird wings and sharp claws
+[win5] desert wind storm spirit with sand swirling around
+
+# ==== 蛇竜 ser ====
+[ser1] small water naga snake with blue scales
+[ser2] three-headed Hydra with green scales
+[ser3] sea dragon with fins along serpentine body
+[ser4] Tiamat the chaos dragon goddess with five heads
+[ser5] Jormungandr the world serpent encircling earth
+
+# ==== 悪魔獣 dmn ====
+[dmn1] small horned demon goat with red glowing eyes
+[dmn2] fiendish boar with red eyes and tusks
+[dmn3] demon wolf with shadow flames trailing behind
+[dmn4] Amon dragon-headed demon prince in dark robes
+[dmn5] Baphomet goat-headed demon lord on a throne
+
+# ==== 妖精 fay ====
+[fay1] tiny hat-wearing dwarf with a beard
+[fay2] delicate flower fairy with petal wings
+[fay3] Tinker sparkle fairy radiating magic dust
+[fay4] Oberon king of fairies with leaf crown
+[fay5] Titania fairy queen with butterfly crown and scepter
+
+# ==== 亀 tur ====
+[tur1] tiny green turtle with cute big eyes
+[tur2] giant Gamera turtle with spiked shell
+[tur3] armored turtle guardian with stone shell
+[tur4] Aspidochelone mountain-sized turtle island
+[tur5] Genbu the black tortoise of north divine sacred beast
+
+# ==== 猫 cat ====
+[cat1] cute orange tabby kitten in playful pose
+[cat2] mischievous alley cat with sly grin
+[cat3] were-cat humanoid feline warrior with claws
+[cat4] Cait Sith fairy cat with boots and feathered hat
+[cat5] Egyptian goddess Bastet divine cat-headed queen
+
+# ==== 石像鳥 stb ====
+[stb1] small stone bird statue come to life
+[stb2] gargoyle with stone wings and grim expression
+[stb3] rock Roc bird with mossy granite feathers
+[stb4] basilisk reptile bird with petrifying gaze
+[stb5] cockatrice rooster-reptile chimera with serpent tail
+
+# ==== 光竜 anu ====
+[anu1] small white light dragon glowing softly
+[anu2] holy saint dragon with halo above head
+[anu3] divine sacred dragon with golden scales
+[anu4] dragon god with radiant aura and crystal horns
+[anu5] Bahamut supreme dragon king with celestial wings
+
+# ==== メタル mtl ====
+[mtl1] tiny silver metal slime with shiny chrome surface
+[mtl2] chrome metal slime with reflective mirror finish
+[mtl3] platinum slime with elusive sparkle effect
+[mtl4] golden metal slime king with crown of gems
+[mtl5] divine metal slime god with rainbow chrome iridescence
+
+# ==== 結晶 jwl ====
+[jwl1] small ruby gem creature with crystal facets
+[jwl2] crystal cluster monster with glowing core
+[jwl3] diamond golem with faceted crystal body
+[jwl4] prismatic rainbow crystal beast with spectral aura
+[jwl5] divine gem god embodying all elements with prismatic crown
+
+# ==== 属性神 god_* (rank 6) ====
+[god_fire] epic divine being Ignis fire god with crown of flames and burning robes, majestic
+[god_water] epic divine being Aquas water god seated on ocean throne with trident, majestic
+[god_grass] epic divine being Flora nature goddess of blooming life surrounded by flowers, majestic
+[god_wind] epic divine being Tempest wind god with vortex aura and feathered cloak, majestic
+[god_earth] epic divine being Gaia earth mother with mountain crown and natural armor, majestic
+[god_thunder] epic divine being Fulgur thunder god with lightning bolts radiating, majestic
+[god_light] epic divine being Lux god of light with blinding white aura and golden raiment, majestic
+[god_dark] epic divine being Nox god of darkness with void aura and shadow tendrils, majestic
+
+# ==== 巨神 titan_* (rank 7) ====
+[titan_fire] colossal mythic titan Surtr fire giant with flaming sword and burning skin
+[titan_water] colossal mythic titan Poseidon sea god with golden trident and crown of coral
+[titan_grass] colossal mythic titan Yggdrasil world tree with branches reaching into cosmos
+[titan_wind] colossal mythic titan Djinn wind emerging from giant lamp with storm clouds
+[titan_earth] colossal mythic titan Atlas earth holding the sky on his shoulders
+[titan_thunder] colossal mythic titan Zeus thunder king with lightning bolts and golden throne
+[titan_light] colossal mythic titan Sol sun god with burning corona and golden chariot
+[titan_dark] colossal mythic titan Nyx night goddess with starry veil and crescent moon
+
+# ==== オリジン ====
+[origin] cosmic ultimate being Origin the prismatic god containing all 8 elements with rainbow wings and divine crown of stars, beyond godhood final form
+
+# ================================================================
+# DALL-E に渡す時の共通サフィックス（必要なら各プロンプトに追加）:
+# ", chibi cartoon monster, full body, centered, transparent background, anime style with soft cel-shading and bold black outlines, vibrant colors, mobile game card art, no text or watermark, square 1:1"
+# ================================================================

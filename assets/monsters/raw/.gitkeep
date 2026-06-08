@@ -1,0 +1,5 @@
+# このフォルダに AI で生成した画像を入れて、scripts/install-ai-art.bat を実行すると、
+# 自動で 512x512 PNG にリサイズして親フォルダ assets/monsters/<id>.png に配置されます。
+#
+# ファイル名は <種族ID>.png|jpg|webp の形式で:
+#   sla1.png, bea1.png, dra5.png, god_fire.png, titan_dark.png, origin.png
