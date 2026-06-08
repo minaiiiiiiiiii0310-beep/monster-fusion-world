@@ -3,18 +3,72 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+
+  <!-- 基本メタ -->
+  <title>モンスターワールド — 3D モンスター対戦・融合 Webゲーム</title>
+  <meta name="description" content="3D 3対3 のモンスター対戦＋融合（ゆうごう）で 自分だけのチームを 育てよう。スライムから巨神まで、157種類のモンスターが あなたを 待っている。">
+  <meta name="author" content="minaiiiiiiiiii0310-beep">
   <meta name="theme-color" content="#10131c">
+
+  <!-- PWA / ホーム画面追加 -->
+  <link rel="manifest" href="manifest.webmanifest">
+  <link rel="icon" href="icon.svg" type="image/svg+xml">
+  <link rel="apple-touch-icon" href="icon.svg">
   <meta name="apple-mobile-web-app-capable" content="yes">
   <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
-  <title>モンスターがったいバトル</title>
+  <meta name="apple-mobile-web-app-title" content="モンスターワールド">
+  <meta name="mobile-web-app-capable" content="yes">
+
+  <!-- OGP / Twitter Card -->
+  <meta property="og:type" content="website">
+  <meta property="og:title" content="モンスターワールド — 3Dモンスター対戦・融合ゲーム">
+  <meta property="og:description" content="157種のモンスターを 集め、融合して 自分だけのチームを 育てよう。スマホで遊べる本格3Dゲーム。">
+  <meta property="og:image" content="icon.svg">
+  <meta property="og:url" content="https://minaiiiiiiiiii0310-beep.github.io/monster-fusion-world/">
+  <meta property="og:locale" content="ja_JP">
+  <meta name="twitter:card" content="summary_large_image">
+  <meta name="twitter:title" content="モンスターワールド">
+  <meta name="twitter:description" content="3Dモンスター対戦＋融合 Webゲーム">
+  <meta name="twitter:image" content="icon.svg">
+
   <link rel="stylesheet" href="css/style.css">
 </head>
 <body>
+  <!-- スプラッシュ：JS 読み込み完了まで表示 -->
+  <div id="splash" class="splash" aria-hidden="true">
+    <div class="splash-inner">
+      <div class="splash-logo" aria-hidden="true">
+        <img src="icon.svg" alt="" width="120" height="120">
+      </div>
+      <div class="splash-title">モンスターワールド</div>
+      <div class="splash-sub">3D モンスター対戦・融合 ゲーム</div>
+      <div class="splash-spinner"></div>
+      <div class="splash-tip">ロード中…</div>
+    </div>
+  </div>
+
   <div id="app">
     <div id="screen"></div>
   </div>
   <div class="rotate-hint">📱 スマホは横向きが おすすめです</div>
-  <button id="mute-btn" class="mute-btn" data-act="mute" title="音のオン/オフ">🔊</button>
+  <button id="mute-btn" class="mute-btn" data-act="mute" title="音のオン/オフ" aria-label="音のオン/オフ">🔊</button>
+
+  <!-- Service Worker 登録（PWA: オフライン対応＋インストール可） -->
+  <script>
+    if ('serviceWorker' in navigator) {
+      window.addEventListener('load', () => {
+        navigator.serviceWorker.register('sw.js').catch((e) => console.warn('SW registration failed', e));
+      });
+    }
+    // グローバルエラーハンドラ（致命的なエラーでも復旧しやすく）
+    window.addEventListener('error', (e) => {
+      console.error('[GameError]', e.message, e.error);
+      try { document.getElementById('splash')?.classList.add('done'); } catch (x) {}
+    });
+    window.addEventListener('unhandledrejection', (e) => {
+      console.error('[GamePromiseError]', e.reason);
+    });
+  </script>
 
   <script src="js/vendor/three.min.js"></script>
   <script src="js/firebase-config.js"></script>

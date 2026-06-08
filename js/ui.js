@@ -1012,17 +1012,56 @@ const UI = (() => {
 
   /* ===== せってい ====================================================== */
   function renderSettings() {
+    const muted = (typeof SoundFX !== 'undefined') && SoundFX.isMuted();
+    const sfxVol = Math.round(((State.data.audio && State.data.audio.sfx) ?? 0.4) * 100);
+    const bgmVol = Math.round(((State.data.audio && State.data.audio.bgm) ?? 0.32) * 100);
+    const wins = State.data.wins || 0;
+    const dex  = State.seenCount();
+    const gold = State.data.gold || 0;
     root.innerHTML = `${header('せってい')}
       <div class="settings">
         <div class="set-row">
-          <b>デフォルトの さくせん</b><br>
+          <b>デフォルトの さくせん</b>
           <button class="btn" data-act="cycleTactic2">${TACTICS[State.data.tactic]}（タップで へんこう）</button>
         </div>
+
         <div class="set-row">
-          <b>データ</b><br>
-          <button class="btn danger" data-act="reset">さいしょから やりなおす</button>
+          <b>サウンド</b>
+          <div class="set-mute">
+            <button class="btn small" data-act="toggleMute">${muted ? '🔇 ミュート中' : '🔊 サウンドON'}</button>
+          </div>
+          <label class="set-slider">SFX <input type="range" min="0" max="100" value="${sfxVol}" data-act="setSfxVol"><span class="set-val">${sfxVol}</span></label>
+          <label class="set-slider">BGM <input type="range" min="0" max="100" value="${bgmVol}" data-act="setBgmVol"><span class="set-val">${bgmVol}</span></label>
         </div>
-        <p class="hint">セーブは じどう（このブラウザ内に ほぞん）。</p>
+
+        <div class="set-row">
+          <b>ぼうけんの きろく</b>
+          <div class="set-stats">
+            <span>勝利数 <b>${wins}</b></span>
+            <span>図鑑 <b>${dex}</b> 種</span>
+            <span>所持 <b>🪙${gold}</b></span>
+            <span>章 <b>${(State.data.story?.chapter ?? 0) + 1}</b></span>
+          </div>
+        </div>
+
+        <div class="set-row">
+          <b>セーブデータ</b>
+          <div class="set-actions">
+            <button class="btn small" data-act="exportSave">📥 エクスポート</button>
+            <button class="btn small" data-act="importSave">📤 インポート</button>
+            <button class="btn small danger" data-act="reset">🗑️ 初期化</button>
+          </div>
+          <p class="hint">エクスポートで セーブを 文字列化して 保存・別端末へ 移行できる。</p>
+        </div>
+
+        <div class="set-row">
+          <b>このゲームについて</b>
+          <p class="hint">
+            モンスターワールド v1 — 31系統・157種のモンスター。<br>
+            ライセンス: 個人利用OK / オープンソース<br>
+            <a href="https://github.com/minaiiiiiiiiii0310-beep/monster-fusion-world" target="_blank" rel="noopener" style="color:var(--accent);">GitHub リポジトリ</a>
+          </p>
+        </div>
       </div>`;
   }
 
@@ -1037,6 +1076,27 @@ const UI = (() => {
       const btn = document.getElementById('mute-btn');
       if (btn) btn.textContent = SoundFX.isMuted() ? '🔇' : '🔊';
     },
+    toggleMute: () => { ACTIONS.mute(); renderSettings(); },
+    setSfxVol: (d, t, e) => {
+      const v = (e.target?.value ?? t.value) / 100;
+      if (typeof SoundFX !== 'undefined') SoundFX.setVolumes({ sfx: v });
+      if (!State.data.audio) State.data.audio = { sfx: 0.4, bgm: 0.32 };
+      State.data.audio.sfx = v; State.save();
+      const valEl = t.parentElement?.querySelector('.set-val');
+      if (valEl) valEl.textContent = Math.round(v * 100);
+    },
+    setBgmVol: (d, t, e) => {
+      const v = (e.target?.value ?? t.value) / 100;
+      if (typeof SoundFX !== 'undefined') SoundFX.setVolumes({ bgm: v });
+      if (!State.data.audio) State.data.audio = { sfx: 0.4, bgm: 0.32 };
+      State.data.audio.bgm = v; State.save();
+      const valEl = t.parentElement?.querySelector('.set-val');
+      if (valEl) valEl.textContent = Math.round(v * 100);
+    },
+    exportSave: () => exportSaveData(),
+    importSave: () => importSaveData(),
+    confirmImport: () => confirmImport(),
+    copySave: (d) => copySave(d.blob || ''),
     box: () => show('box'),
     fusion: () => { fuseA = null; fuseB = null; show('fusion'); },
     explore: () => show('explore'),
@@ -1187,6 +1247,8 @@ const UI = (() => {
   function onClick(e) {
     const t = e.target.closest('[data-act]');
     if (!t) return;
+    // range/select の onClick はスキップ（onInput で処理する）
+    if (t.tagName === 'INPUT' && t.type === 'range') return;
     const act = t.dataset.act;
     // 初回タップで AudioContext を unlock し、UI 効果音を鳴らす
     if (typeof SoundFX !== 'undefined') {
@@ -1198,10 +1260,85 @@ const UI = (() => {
     if (ACTIONS[act]) { e.preventDefault(); ACTIONS[act](t.dataset, t, e); }
   }
 
+  function onInput(e) {
+    const t = e.target.closest('[data-act]');
+    if (!t) return;
+    const act = t.dataset.act;
+    if (ACTIONS[act]) ACTIONS[act](t.dataset, t, e);
+  }
+
+  /* ===== セーブ エクスポート/インポート ================================= */
+  function exportSaveData() {
+    try {
+      const raw = localStorage.getItem('monfusion_save_v2') || '';
+      if (!raw) { toast('セーブが ありません', 'warn'); return; }
+      // Base64エンコードして 改行のない 1行文字列に
+      const enc = btoa(unescape(encodeURIComponent(raw)));
+      showModal(`<div class="dialogue"><div class="dlg-spk">📥 セーブの エクスポート</div>
+        <div class="dlg-text">下の 文字列を コピーして 安全な場所に 保存してください。
+          別端末で インポートすると 進行を 引き継げます。</div>
+        <textarea class="save-blob" readonly onclick="this.select()">${enc}</textarea>
+        <button class="btn primary wide" data-act="copySave" data-blob="${enc}">📋 コピー</button>
+        <button class="btn ghost wide" data-act="closeModal">とじる</button>
+        </div>`, false);
+    } catch (e) { toast('エクスポート失敗', 'err'); }
+  }
+  function importSaveData() {
+    showModal(`<div class="dialogue"><div class="dlg-spk">📤 セーブの インポート</div>
+      <div class="dlg-text">エクスポートで えた 文字列を 貼り付けて ください。
+        <strong>げんざいの セーブは 上書き されます。</strong></div>
+      <textarea class="save-blob" id="import-blob" placeholder="ここに 貼り付け…"></textarea>
+      <button class="btn primary wide" data-act="confirmImport">⚠ 上書きして インポート</button>
+      <button class="btn ghost wide" data-act="closeModal">キャンセル</button>
+      </div>`, false);
+  }
+  function confirmImport() {
+    const ta = document.getElementById('import-blob');
+    if (!ta) return;
+    const enc = (ta.value || '').trim();
+    if (!enc) { toast('文字列が 空です', 'warn'); return; }
+    try {
+      const raw = decodeURIComponent(escape(atob(enc)));
+      const parsed = JSON.parse(raw);
+      if (!parsed || !parsed.data) throw new Error('invalid');
+      // バックアップを取ってから 上書き
+      try { localStorage.setItem('monfusion_save_v2_backup', localStorage.getItem('monfusion_save_v2') || ''); } catch (e) {}
+      localStorage.setItem('monfusion_save_v2', raw);
+      closeModal();
+      toast('インポート 成功！ 再読み込みします…', 'ok');
+      setTimeout(() => location.reload(), 1100);
+    } catch (e) { toast('文字列の 形式が ちがいます', 'err'); }
+  }
+  function copySave(blob) {
+    if (!navigator.clipboard) return toast('クリップボードが 使えません', 'warn');
+    navigator.clipboard.writeText(blob).then(
+      () => toast('コピー しました', 'ok'),
+      () => toast('コピー 失敗', 'err'),
+    );
+  }
+
+  /* ===== トースト通知 =================================================== */
+  function toast(msg, kind = 'ok', ms = 2200) {
+    let bar = document.getElementById('toast');
+    if (!bar) {
+      bar = document.createElement('div'); bar.id = 'toast'; bar.className = 'toast';
+      document.body.appendChild(bar);
+    }
+    bar.textContent = msg;
+    bar.className = 'toast show ' + kind;
+    clearTimeout(toast._t);
+    toast._t = setTimeout(() => { bar.className = 'toast'; }, ms);
+  }
+
   /* ===== 起動 ========================================================== */
   function init() {
     document.addEventListener('click', onClick);
+    document.addEventListener('input', onInput);
     State.load();
+    // 起動時に保存された音量を反映
+    if (typeof SoundFX !== 'undefined' && State.data.audio) {
+      SoundFX.setVolumes(State.data.audio);
+    }
     show('home');
   }
 

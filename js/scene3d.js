@@ -23,8 +23,15 @@ const Scene3D = (() => {
     dispose();
     canvas = cv; overlay = ov;
     try {
-      renderer = new THREE.WebGLRenderer({ canvas, antialias: true, alpha: true, preserveDrawingBuffer: true });
-    } catch (e) { return false; }
+      // 低スペック端末では antialias を切ってフォールバック
+      const dpr = window.devicePixelRatio || 1;
+      const lowPower = dpr <= 1 && (navigator.hardwareConcurrency || 4) < 4;
+      renderer = new THREE.WebGLRenderer({
+        canvas, antialias: !lowPower, alpha: true, preserveDrawingBuffer: true,
+        powerPreference: lowPower ? 'low-power' : 'high-performance',
+      });
+    } catch (e) { console.warn('Scene3D init failed', e); return false; }
+    if (!renderer) return false;
     const w = canvas.clientWidth || 360, h = canvas.clientHeight || 300;
     renderer.setPixelRatio(Math.min(window.devicePixelRatio || 1, 2));
     renderer.setSize(w, h, false);
@@ -82,6 +89,16 @@ const Scene3D = (() => {
     scene.add(innerRing);
 
     active = true; clock = 0; last = performance.now();
+    // GPU context lost対策
+    canvas.addEventListener('webglcontextlost', (ev) => {
+      ev.preventDefault();
+      console.warn('WebGL context lost');
+      active = false;
+    }, false);
+    canvas.addEventListener('webglcontextrestored', () => {
+      console.warn('WebGL context restored');
+      active = true; last = performance.now(); loop();
+    }, false);
     loop();
     window.addEventListener('resize', onResize);
     return true;
@@ -2399,6 +2416,18 @@ const Scene3D = (() => {
 
   /* 衝撃の粒子エフェクト：被弾位置に8〜12個の小球を放射状に飛ばす */
   let burstParticles = [];   // {mesh, vx,vy,vz, age, ttl, mat}
+  const MAX_PARTICLES = 180;
+  function _capParticles() {
+    // 上限を超えたら一番古いものから削除
+    while (burstParticles.length > MAX_PARTICLES) {
+      const old = burstParticles.shift();
+      if (old) {
+        try { scene.remove(old.mesh); } catch (e) {}
+        try { old.mat && old.mat.dispose(); } catch (e) {}
+        try { old.mesh && old.mesh.geometry && old.mesh.geometry.dispose(); } catch (e) {}
+      }
+    }
+  }
   function impactBurst(e, kind) {
     const isCrit = kind === 'crit';
     const n = isCrit ? 14 : 10;
@@ -2454,6 +2483,7 @@ const Scene3D = (() => {
   }
   function updateBurstParticles(dt) {
     if (burstParticles.length === 0) return;
+    _capParticles();
     const next = [];
     for (const p of burstParticles) {
       p.age += dt;

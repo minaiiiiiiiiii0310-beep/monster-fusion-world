@@ -1,0 +1,27 @@
+{
+  "name": "モンスターワールド",
+  "short_name": "MWorld",
+  "description": "3D 3対3 モンスター対戦＋融合（ゆうごう）Webゲーム。スライムから巨神まで、自分だけのチームを育てよう。",
+  "start_url": "./",
+  "scope": "./",
+  "display": "standalone",
+  "orientation": "any",
+  "background_color": "#10131c",
+  "theme_color": "#10131c",
+  "lang": "ja",
+  "categories": ["games", "entertainment"],
+  "icons": [
+    {
+      "src": "icon.svg",
+      "sizes": "any",
+      "type": "image/svg+xml",
+      "purpose": "any"
+    },
+    {
+      "src": "icon.svg",
+      "sizes": "any",
+      "type": "image/svg+xml",
+      "purpose": "maskable"
+    }
+  ]
+}

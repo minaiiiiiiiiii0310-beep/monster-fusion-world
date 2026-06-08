@@ -1,0 +1,59 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512">
+  <!-- 背景: 角丸の濃紺グラデ -->
+  <defs>
+    <radialGradient id="bg" cx="50%" cy="40%" r="65%">
+      <stop offset="0%" stop-color="#1b2745"/>
+      <stop offset="100%" stop-color="#0c0f17"/>
+    </radialGradient>
+    <radialGradient id="slime" cx="35%" cy="30%" r="70%">
+      <stop offset="0%" stop-color="#7fb5ff"/>
+      <stop offset="60%" stop-color="#3a78d0"/>
+      <stop offset="100%" stop-color="#2a4ea8"/>
+    </radialGradient>
+    <radialGradient id="orb" cx="50%" cy="40%" r="55%">
+      <stop offset="0%" stop-color="#fff5a8"/>
+      <stop offset="100%" stop-color="#ffd23d"/>
+    </radialGradient>
+  </defs>
+  <rect width="512" height="512" rx="96" fill="url(#bg)"/>
+
+  <!-- 上部のロゴ風文字 -->
+  <text x="256" y="100" text-anchor="middle"
+        font-family="-apple-system, 'Yu Gothic', sans-serif"
+        font-size="56" font-weight="900" fill="#ffd23d"
+        style="letter-spacing:0.04em">MONSTER</text>
+  <text x="256" y="148" text-anchor="middle"
+        font-family="-apple-system, 'Yu Gothic', sans-serif"
+        font-size="32" font-weight="700" fill="#e8ecf6"
+        style="letter-spacing:0.5em">WORLD</text>
+
+  <!-- 中央のスライム（ドラクエ風水滴） -->
+  <!-- 影 -->
+  <ellipse cx="256" cy="430" rx="120" ry="14" fill="#000" opacity="0.45"/>
+  <!-- 下のドーム -->
+  <path d="M 138 410 Q 138 282 256 282 Q 374 282 374 410 Z" fill="url(#slime)" stroke="#1a1a26" stroke-width="6" stroke-linejoin="round"/>
+  <!-- 上の水滴 -->
+  <path d="M 196 320 Q 196 232 256 215 Q 256 215 256 215 Q 316 232 316 320 Z" fill="url(#slime)" stroke="#1a1a26" stroke-width="6" stroke-linejoin="round"/>
+  <ellipse cx="256" cy="218" rx="20" ry="18" fill="url(#slime)" stroke="#1a1a26" stroke-width="6"/>
+
+  <!-- 目（白） -->
+  <ellipse cx="224" cy="340" rx="22" ry="28" fill="#fff" stroke="#1a1a26" stroke-width="3"/>
+  <ellipse cx="288" cy="340" rx="22" ry="28" fill="#fff" stroke="#1a1a26" stroke-width="3"/>
+  <!-- 瞳 -->
+  <ellipse cx="226" cy="346" rx="11" ry="16" fill="#0a0a14"/>
+  <ellipse cx="290" cy="346" rx="11" ry="16" fill="#0a0a14"/>
+  <!-- きらめき -->
+  <ellipse cx="232" cy="334" rx="5" ry="6" fill="#fff"/>
+  <ellipse cx="296" cy="334" rx="5" ry="6" fill="#fff"/>
+
+  <!-- にっこり口 -->
+  <path d="M 220 380 Q 256 408 292 380" stroke="#1a1a26" stroke-width="6" fill="none" stroke-linecap="round"/>
+
+  <!-- 王冠（小さな金） -->
+  <g transform="translate(220,200)">
+    <path d="M 0 24 L 6 6 L 18 18 L 36 0 L 54 18 L 66 6 L 72 24 Z" fill="url(#orb)" stroke="#a07020" stroke-width="3" stroke-linejoin="round"/>
+    <circle cx="6" cy="6" r="4" fill="#ff5a40"/>
+    <circle cx="66" cy="6" r="4" fill="#5fd06a"/>
+    <circle cx="36" cy="0" r="4" fill="#5b8cff"/>
+  </g>
+</svg>

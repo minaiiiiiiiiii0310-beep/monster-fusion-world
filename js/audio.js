@@ -8,9 +8,10 @@
  *  - localStorage で ミュート設定を保持
  * =======================================================================*/
 const SoundFX = (() => {
-  let ctx, master, bgmGain;
+  let ctx, master, sfxBus, bgmBus;
   let bgmTimer = null, bgmPlaying = false;
   let muted = false;
+  let sfxVol = 0.4, bgmVol = 0.32;
   const SAVE_KEY = 'monfusion_muted';
 
   try { muted = localStorage.getItem(SAVE_KEY) === '1'; } catch (e) {}
@@ -20,15 +21,17 @@ const SoundFX = (() => {
     try {
       ctx = new (window.AudioContext || window.webkitAudioContext)();
       master = ctx.createGain();
-      master.gain.value = muted ? 0 : 0.4;
+      master.gain.value = muted ? 0 : 1;     // master はミュート専用（0/1）
       master.connect(ctx.destination);
-      bgmGain = ctx.createGain();
-      bgmGain.gain.value = 0.32;
-      bgmGain.connect(master);
+      sfxBus = ctx.createGain();
+      sfxBus.gain.value = sfxVol;
+      sfxBus.connect(master);
+      bgmBus = ctx.createGain();
+      bgmBus.gain.value = bgmVol;
+      bgmBus.connect(master);
     } catch (e) { ctx = null; }
   }
 
-  // ユーザー操作で確実に起こす（モバイル：suspended 解除）
   function unlock() {
     if (!ctx) init();
     if (ctx && ctx.state === 'suspended') {
@@ -39,9 +42,16 @@ const SoundFX = (() => {
   function setMuted(m) {
     muted = !!m;
     try { localStorage.setItem(SAVE_KEY, muted ? '1' : '0'); } catch (e) {}
-    if (master) master.gain.value = muted ? 0 : 0.4;
+    if (master) master.gain.value = muted ? 0 : 1;
   }
   function isMuted() { return muted; }
+  function setVolumes(v) {
+    if (v && typeof v.sfx === 'number') sfxVol = Math.max(0, Math.min(1, v.sfx));
+    if (v && typeof v.bgm === 'number') bgmVol = Math.max(0, Math.min(1, v.bgm));
+    if (sfxBus) sfxBus.gain.value = sfxVol;
+    if (bgmBus) bgmBus.gain.value = bgmVol;
+  }
+  function getVolumes() { return { sfx: sfxVol, bgm: bgmVol }; }
 
   /* オシレータ単発 */
   function tone(freq, dur, type = 'sine', vol = 0.3, attack = 0.005) {
@@ -54,7 +64,7 @@ const SoundFX = (() => {
     g.gain.setValueAtTime(0, now);
     g.gain.linearRampToValueAtTime(vol, now + attack);
     g.gain.exponentialRampToValueAtTime(0.001, now + dur);
-    o.connect(g); g.connect(master);
+    o.connect(g); g.connect(sfxBus);
     o.start(now); o.stop(now + dur + 0.02);
   }
 
@@ -69,7 +79,7 @@ const SoundFX = (() => {
     o.frequency.exponentialRampToValueAtTime(Math.max(20, f2), now + dur);
     g.gain.setValueAtTime(vol, now);
     g.gain.exponentialRampToValueAtTime(0.001, now + dur);
-    o.connect(g); g.connect(master);
+    o.connect(g); g.connect(sfxBus);
     o.start(now); o.stop(now + dur + 0.02);
   }
 
@@ -92,7 +102,7 @@ const SoundFX = (() => {
       f.type = 'lowpass'; f.frequency.value = filterFreq;
       node.connect(f); node = f;
     }
-    node.connect(g); g.connect(master);
+    node.connect(g); g.connect(sfxBus);
     src.start(now); src.stop(now + dur + 0.02);
   }
 
@@ -204,7 +214,7 @@ const SoundFX = (() => {
         g.gain.setValueAtTime(0, now);
         g.gain.linearRampToValueAtTime(0.08, now + 0.015);
         g.gain.exponentialRampToValueAtTime(0.001, now + step / 1000 * 0.9);
-        o.connect(g); g.connect(bgmGain);
+        o.connect(g); g.connect(bgmBus);
         o.start(now); o.stop(now + step / 1000 + 0.05);
       }
       // ベース音（低音）— 4ステップに1回
@@ -216,7 +226,7 @@ const SoundFX = (() => {
         o.frequency.value = f / 4;
         g.gain.setValueAtTime(0.06, now);
         g.gain.exponentialRampToValueAtTime(0.001, now + step / 1000 * 3);
-        o.connect(g); g.connect(bgmGain);
+        o.connect(g); g.connect(bgmBus);
         o.start(now); o.stop(now + step / 1000 * 3 + 0.05);
       }
       idx++;
@@ -228,5 +238,5 @@ const SoundFX = (() => {
     bgmPlaying = false;
   }
 
-  return { init, unlock, sfx, bgm, stopBgm, setMuted, isMuted };
+  return { init, unlock, sfx, bgm, stopBgm, setMuted, isMuted, setVolumes, getVolumes };
 })();

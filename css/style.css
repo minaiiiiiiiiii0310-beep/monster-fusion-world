@@ -27,10 +27,14 @@ h1,h2,h3{ margin:0 0 10px; }
 /* ---- ボタン共通 ---- */
 .btn{
   appearance:none; border:1px solid var(--line); background:var(--panel2);
-  color:var(--text); border-radius:12px; padding:11px 14px; font-size:14px;
-  font-weight:600; cursor:pointer; transition:.12s; touch-action:manipulation;
+  color:var(--text); border-radius:12px; padding:12px 16px; font-size:14px;
+  font-weight:600; cursor:pointer; transition:transform .1s ease, background .15s, border-color .15s, box-shadow .15s;
+  touch-action:manipulation; min-height:42px;   /* タッチターゲット下限 (推奨44px) */
+  user-select:none;
 }
 .btn:active{ transform:scale(.96); }
+.btn:hover{ background:#2e3958; }
+.btn:focus-visible{ outline:2px solid var(--accent); outline-offset:2px; }
 .btn.primary{ background:linear-gradient(180deg,#5b8cff,#3a64e0); border-color:#5b8cff; }
 .btn.danger{ background:#3a1f29; border-color:#7a3550; color:#ffb3c4; }
 .btn.ghost{ background:transparent; }
@@ -329,6 +333,46 @@ h1,h2,h3{ margin:0 0 10px; }
 .shop-buy{ display:flex; align-items:center; gap:8px; }
 .own{ color:var(--sub); font-size:12px; }
 
+/* ===== 設定 ===== */
+.settings .set-row{
+  background:var(--panel); border:1px solid var(--line);
+  border-radius:14px; padding:14px; margin-bottom:12px;
+}
+.settings .set-row > b{ display:block; margin-bottom:8px; }
+.set-mute{ margin-bottom:8px; }
+.set-slider{
+  display:flex; align-items:center; gap:10px; margin-top:8px;
+  font-size:13px; color:var(--text);
+}
+.set-slider input[type=range]{ flex:1; }
+.set-val{ width:36px; text-align:right; color:var(--gold); font-weight:700; }
+.set-stats{
+  display:grid; grid-template-columns:1fr 1fr; gap:6px 12px;
+  font-size:13px; color:var(--sub);
+}
+.set-stats b{ color:var(--text); }
+.set-actions{ display:flex; gap:8px; flex-wrap:wrap; }
+.save-blob{
+  display:block; width:100%; min-height:90px; max-height:160px;
+  background:#0c111e; border:1px solid var(--line); border-radius:10px;
+  color:var(--text); padding:8px; font-family:monospace; font-size:11px;
+  resize:vertical; margin:10px 0;
+  -webkit-user-select:text; user-select:text;
+}
+
+/* ===== トースト通知 ===== */
+.toast{
+  position:fixed; left:50%; bottom:80px; transform:translate(-50%, 16px);
+  background:#0b0f1cee; border:1px solid var(--line); color:var(--text);
+  padding:10px 18px; border-radius:14px; font-size:13px; font-weight:700;
+  pointer-events:none; opacity:0; transition:.25s ease;
+  z-index:99990; max-width:84vw; text-align:center;
+}
+.toast.show{ opacity:1; transform:translate(-50%, 0); }
+.toast.ok{ border-color:var(--good); }
+.toast.warn{ border-color:var(--warn); }
+.toast.err{ border-color:var(--bad); }
+
 /* ===== 横画面（landscape）対応 =====
    スマホを横向きにしたとき、3D表示を画面いっぱいに、操作系を両サイドへ。 */
 @media (orientation: landscape) and (max-height: 600px) {
@@ -366,6 +410,36 @@ h1,h2,h3{ margin:0 0 10px; }
 }
 
 /* ヒント: 縦持ちで開いた人向けの“横向き推奨”バナー（小画面の縦のみ） */
+/* ===== スプラッシュ（初回ロード） ===== */
+.splash{
+  position:fixed; inset:0; z-index:99999;
+  background:radial-gradient(ellipse at center, #1b2745 0%, #0c0f17 75%);
+  display:flex; align-items:center; justify-content:center;
+  transition:opacity .55s ease, visibility .55s;
+  color:var(--text);
+}
+.splash.done{ opacity:0; visibility:hidden; pointer-events:none; }
+.splash-inner{ text-align:center; padding:24px; }
+.splash-logo img{
+  display:block; margin:0 auto 16px; border-radius:24px;
+  box-shadow:0 8px 24px #0008, 0 0 36px #5b8cff44;
+  animation:splashPop .8s ease;
+}
+.splash-title{
+  font-size:28px; font-weight:900; letter-spacing:.04em;
+  color:var(--gold); text-shadow:0 2px 0 #0008;
+  margin-bottom:4px;
+}
+.splash-sub{ font-size:12px; color:var(--sub); margin-bottom:24px; }
+.splash-spinner{
+  width:36px; height:36px; margin:0 auto 12px;
+  border:3px solid #ffffff22; border-top-color:var(--gold);
+  border-radius:50%; animation:splashSpin 1s linear infinite;
+}
+.splash-tip{ font-size:12px; color:var(--sub); }
+@keyframes splashSpin{ to { transform:rotate(360deg); } }
+@keyframes splashPop{ from{ transform:scale(.7); opacity:0; } to{ transform:scale(1); opacity:1; } }
+
 .mute-btn{
   position:fixed; top:env(safe-area-inset-top, 6px); right:8px; z-index:9998;
   width:36px; height:36px; border-radius:50%;

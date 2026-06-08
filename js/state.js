@@ -52,8 +52,12 @@ const State = (() => {
       cleared: {},                // クリアしたフィールドのボス {areaId:true}
       dexReward: 0,               // 図鑑コンプ報酬の受取段階
       player: { x: 0, z: 7, angle: 0 },          // 3Dマップの自分の位置
+      overworld: { x: 0, z: 70, angle: Math.PI }, // オーバーワールドの位置
       story: { chapter: 0, seenIntro: false, seenEnding: false },
-      version: 2,
+      audio: { sfx: 0.4, bgm: 0.32 },             // 音量設定
+      questDone: {},                              // サイドクエスト達成フラグ
+      fuseCount: 0,                               // 融合回数（サイドクエスト用）
+      version: 3,
     };
   }
 
@@ -73,25 +77,52 @@ const State = (() => {
   };
 
   /* ---- セーブ / ロード -------------------------------------------------- */
+  // 二重バックアップで予期せぬデータ破損から復旧できるようにする：
+  //   monfusion_save_v2         … メイン
+  //   monfusion_save_v2_backup1 … 直前
+  //   monfusion_save_v2_backup2 … 直々前
+  const BACKUP_KEY1 = SAVE_KEY + '_backup1';
+  const BACKUP_KEY2 = SAVE_KEY + '_backup2';
+  let _saveT = 0;
   function save() {
     try {
-      localStorage.setItem(SAVE_KEY, JSON.stringify({ data, uidSeq }));
-    } catch (e) { /* localStorage 不可環境では無視 */ }
+      const payload = JSON.stringify({
+        data, uidSeq,
+        savedAt: Date.now(),
+        version: 2,
+      });
+      // 既存セーブを backup1 へ、backup1 を backup2 へ
+      const prev = localStorage.getItem(SAVE_KEY);
+      const prev1 = localStorage.getItem(BACKUP_KEY1);
+      if (prev) localStorage.setItem(BACKUP_KEY1, prev);
+      if (prev1) localStorage.setItem(BACKUP_KEY2, prev1);
+      localStorage.setItem(SAVE_KEY, payload);
+    } catch (e) {
+      console.warn('save failed', e);
+    }
   }
 
   function load() {
-    try {
-      const raw = localStorage.getItem(SAVE_KEY);
-      if (raw) {
+    // メイン → backup1 → backup2 の順で試行
+    for (const key of [SAVE_KEY, BACKUP_KEY1, BACKUP_KEY2]) {
+      try {
+        const raw = localStorage.getItem(key);
+        if (!raw) continue;
         const parsed = JSON.parse(raw);
+        if (!parsed || !parsed.data) continue;
         data = parsed.data;
         uidSeq = parsed.uidSeq || (maxUid(data) + 1);
         ensureFields();
+        if (key !== SAVE_KEY) {
+          console.warn('[State] メインセーブが壊れていたためバックアップから復旧:', key);
+          save();   // メインを書き直す
+        }
         return true;
+      } catch (e) {
+        console.warn('[State] load failed for', key, e);
       }
-    } catch (e) { /* 壊れていたら新規 */ }
+    }
     data = freshGame();
-    // 初期メンバーをずかん登録
     data.box.forEach(m => markSeen(m.species));
     save();
     return false;
@@ -117,6 +148,9 @@ const State = (() => {
     if (!data.player) data.player = { x: 0, z: 7, angle: 0 };
     if (!data.overworld) data.overworld = { x: 0, z: 70, angle: Math.PI };
     if (!data.story) data.story = { chapter: 0, seenIntro: false, seenEnding: false };
+    if (!data.audio) data.audio = { sfx: 0.4, bgm: 0.32 };
+    if (!data.questDone) data.questDone = {};
+    if (data.fuseCount == null) data.fuseCount = 0;
 
     // 存在しない種族の個体を除去（データ刷新・旧セーブ対策）
     data.box = (data.box || []).filter(m => m && DB.species(m.species));
@@ -305,6 +339,7 @@ const State = (() => {
     // パーティが3未満なら子を補充
     if (data.party.length < 3) data.party.push(child.uid);
 
+    data.fuseCount = (data.fuseCount || 0) + 1;
     save();
     return { ok: true, child, isNew: true };
   }
