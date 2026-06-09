@@ -20,6 +20,7 @@ const UI = (() => {
     closeModal();
     if (name === 'home') renderHome();
     else if (name === 'snap') renderSnap();
+    else if (name === 'tactics') renderTactics();
     else if (name === 'deck') renderDeck();
     else if (name === 'dex') renderDex();
     else if (name === 'settings') renderSettings();
@@ -27,8 +28,17 @@ const UI = (() => {
     window.scrollTo(0, 0);
     // BGM
     if (typeof SoundFX !== 'undefined') {
-      SoundFX.bgm(name === 'snap' ? 'battle' : 'town');
+      SoundFX.bgm((name === 'snap' || name === 'tactics') ? 'battle' : 'town');
     }
+  }
+
+  function renderTactics() {
+    if (typeof TacticsUI === 'undefined') {
+      root.innerHTML = `${header('タクティクス')}
+        <p class="hint">タクティクス モジュールが 読み込まれていません。</p>`;
+      return;
+    }
+    TacticsUI.start({ onExit: () => show('home') });
   }
 
   function goScreen(name, back) { backTarget = back; show(name); }
@@ -83,9 +93,14 @@ const UI = (() => {
         <h1 class="game-title">モンスター<br><span>スナップ</span></h1>
         <p class="title-sub">— 3レーン × 6ターン の カードバトル —</p>
         <div class="pp-emojis">${emojis}</div>
+        <button class="menu-btn big start" data-act="startTactics"
+          style="background:linear-gradient(180deg,#a06bff,#3a1888);border-color:#ffd23d;">
+          <span class="mi">♟</span>タクティクス (6×6 戦術)
+          <small style="display:block;font-size:10px;opacity:.8;">NEW</small>
+        </button>
         <button class="menu-btn big start" data-act="startSnapCpu"
-          style="background:linear-gradient(180deg,#ff7a30,#c43014);border-color:#ffd23d;">
-          <span class="mi">🎴</span>CPU と たいせん
+          style="margin-top:10px;background:linear-gradient(180deg,#ff7a30,#c43014);border-color:#ffd23d;">
+          <span class="mi">🎴</span>スナップ (3レーン)
         </button>
         ${onlineAvail ? `
           <button class="menu-btn big start" data-act="startSnapOnline"
@@ -293,6 +308,14 @@ const UI = (() => {
 
     // タイトル
     startSnap: () => { snapMode = 'cpu'; backTarget = 'home'; show('snap'); },
+    startTactics: () => { backTarget = 'home'; show('tactics'); },
+    tacHandTap: (d) => TacticsUI.handTap(+d.uid),
+    tacMagicTap: (d) => TacticsUI.magicTap(+d.uid),
+    tacCellTap: (d) => TacticsUI.cellTap(+d.x, +d.y),
+    tacEndTurn: () => TacticsUI.endTurn(),
+    tacCancelMagic: () => TacticsUI.cancelMagic(),
+    tacRestart: () => TacticsUI.restart(),
+    tacExit: () => { TacticsUI.exit(); show('home'); },
     startSnapCpu: () => { snapMode = 'cpu'; onlineOpp = null; backTarget = 'home'; show('snap'); },
     startSnapOnline: () => { startOnlineMatch(); },
     goDeck: () => goScreen('deck', 'home'),
