@@ -46,6 +46,8 @@ const TacticsEngine = (() => {
       phase: 'start',           // start | main | end
       pendingReactions: { ally: [], enemy: [] },   // 伏せ魔法（リアクション）
       activeBuffs: [],          // 1ターンの 一時バフ
+      preCombat: { ally: null, enemy: null },     // 戦闘直前 魔法（次の attack で 消費）
+      moveBlocked: { ally: 0, enemy: 0 },          // 移動制限（次の Nターン、mov を 1 に）
       over: false,
       winner: null,
       log: [],
@@ -194,6 +196,10 @@ const TacticsEngine = (() => {
   function effectiveMov(piece) {
     let m = piece.mov;
     if (piece.skill === 'swift') m += 1;
+    // 移動制限 (gravity_force 等)
+    if (G.moveBlocked && G.moveBlocked[piece.owner] > 0) {
+      m = Math.min(m, 1);
+    }
     return m;
   }
 
@@ -260,7 +266,44 @@ const TacticsEngine = (() => {
     const target = findPiece(targetUid);
     const can = canAttack(attacker, target);
     if (!can.ok) return can;
-    const damage = effectiveAtk(attacker);
+    // ===== 戦闘前 魔法 トリガー =====
+    // 攻撃側の preCombat 魔法
+    let damage = effectiveAtk(attacker);
+    const myPre = G.preCombat[attacker.owner];
+    if (myPre) {
+      if (myPre.atkBonus) damage += myPre.atkBonus;
+      if (myPre.damageMult) damage = Math.ceil(damage * myPre.damageMult);
+      G.preCombat[attacker.owner] = null;   // 1回で 消費
+    }
+    // リアクション魔法（counter_trap / mirror_force）
+    const opp_ = opp(attacker.owner);
+    const reactions = G.pendingReactions[opp_] || [];
+    for (let i = reactions.length - 1; i >= 0; i--) {
+      const r = reactions[i];
+      if (r.trigger === 'opp_attack') {
+        if (r.type === 'counter_trap') {
+          reactions.splice(i, 1);
+          attacker.attacked = true;
+          G.log.push(`🪤 カウンタートラップ発動！${attacker.name} の 攻撃 無効`);
+          return { ok: true, damage: 0, negated: true };
+        }
+        if (r.type === 'mirror_force') {
+          reactions.splice(i, 1);
+          attacker.curHp -= damage;
+          attacker.attacked = true;
+          G.log.push(`🪞 ミラーフォース！${damage} を 反射`);
+          if (attacker.curHp <= 0) destroyPiece(attacker, target);
+          checkWin();
+          return { ok: true, damage: 0, reflected: damage };
+        }
+      }
+    }
+    // 防御側の preCombat 魔法（iron_wall）
+    const oppPre = G.preCombat[opp_];
+    if (oppPre && oppPre.reduceDmg) {
+      damage = Math.max(0, damage - oppPre.reduceDmg);
+      G.preCombat[opp_] = null;
+    }
     const dealt = applyDamage(target, damage, attacker);
     attacker.attacked = true;
     G.log.push(`⚔ ${attacker.name} → ${target.name} に ${dealt} ダメージ`);
@@ -300,6 +343,17 @@ const TacticsEngine = (() => {
     G.log.push(`☠ ${piece.name} 撃破`);
     setCell(piece.x, piece.y, null);
     triggerOnDeath(piece, killer);
+    // リアクション: reverse_resource（味方撃破 → モンスター札 +1）
+    const reactions = G.pendingReactions[piece.owner] || [];
+    for (let i = reactions.length - 1; i >= 0; i--) {
+      const r = reactions[i];
+      if (r.trigger === 'ally_death' && r.type === 'reverse_resource') {
+        drawMonster(piece.owner, 1);
+        G.log.push(`🪤 リバース・リソース発動！+1 ドロー`);
+        reactions.splice(i, 1);
+        break;
+      }
+    }
   }
 
   function triggerOnSummon(piece) {
@@ -474,6 +528,8 @@ const TacticsEngine = (() => {
       // 1ターン限定 バフを 切る
       G.activeBuffs = G.activeBuffs.filter(b => b.turn === G.turn);
     }
+    // 移動制限の デクリメント
+    if (G.moveBlocked[G.whose] > 0) G.moveBlocked[G.whose] -= 1;
     // エネルギー回復
     G.energy[G.whose] = Math.min(10, G.turn);
     // ドロー
@@ -508,6 +564,36 @@ const TacticsEngine = (() => {
     }
   }
 
+  // ============ 魔法 用 公開 API ============
+  // tactics_magic.js から 呼ばれて 内部状態を 操作する。
+  function consumeMagicFromHand(side, magicUid) {
+    const idx = G.magicHand[side].findIndex(m => m.uid === magicUid);
+    if (idx < 0) return null;
+    const card = G.magicHand[side][idx];
+    if (G.energy[side] < card.cost) return null;
+    G.magicHand[side].splice(idx, 1);
+    G.energy[side] -= card.cost;
+    return card;
+  }
+  function addBuff(buff) { G.activeBuffs.push(buff); }
+  function setPreCombat(side, modifier) { G.preCombat[side] = modifier; }
+  function addReaction(side, reaction) { G.pendingReactions[side].push(reaction); }
+  function setMoveBlocked(side, turns) { G.moveBlocked[side] = turns; }
+  function teleportPiece(uid, x, y) {
+    const piece = findPiece(uid);
+    if (!piece) return false;
+    if (!inBoard(x, y) || cell(x, y)) return false;
+    setCell(piece.x, piece.y, null);
+    setCell(x, y, piece);
+    return true;
+  }
+  function healPiece(uid) {
+    const p = findPiece(uid);
+    if (!p) return false;
+    p.curHp = p.maxHp;
+    return true;
+  }
+
   return {
     BOARD_W, BOARD_H, HAND_MAX, MAGIC_HAND_MAX, MAX_ON_BOARD,
     STARTING_ROWS,
@@ -518,6 +604,9 @@ const TacticsEngine = (() => {
     effectiveAtk, effectiveMov, effectiveRng,
     findPiece, piecesOf, cell, inBoard, chebyshev, neighbors,
     checkWin,
+    // 魔法 用 公開 API
+    consumeMagicFromHand, addBuff, setPreCombat, addReaction,
+    setMoveBlocked, teleportPiece, healPiece,
     // 試合状態の 直接アクセス（魔法カードが 内部状態を 触る用）
     _internal: () => ({ destroyPiece, applyDamage }),
   };
