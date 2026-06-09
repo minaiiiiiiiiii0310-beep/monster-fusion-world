@@ -206,6 +206,7 @@ const TacticsEngine = (() => {
   function effectiveRng(piece) {
     let r = piece.rng;
     if (piece.skill === 'longshot') r += 1;
+    r += resonanceRngBonus(piece);
     return r;
   }
 
@@ -236,7 +237,162 @@ const TacticsEngine = (() => {
     G.activeBuffs.forEach(b => {
       if (b.side === piece.owner && b.matches(piece)) a += b.atkBonus;
     });
+    // 共鳴 ボーナス
+    a += resonanceAtkBonus(piece);
     return Math.max(0, a);
+  }
+
+  /* ============ 共鳴 (Resonance) ============
+   * 特定の 配置 (L字 / 直線 / 同系統 / 同属性) が 揃うと 強力 ボーナス。
+   * 「天才的な一手」を 生む 中核 仕組み。
+   *
+   * 検出される パターン:
+   *   - line3:     直線3連 (横/縦) → 全員 +2 atk
+   *   - diag3:     斜め3連             → 全員 +1 atk +1 rng
+   *   - L_shape:   L字3連             → 角の駒 +3 atk
+   *   - family3:   同系統 3+体         → 全員 +2 atk
+   *   - el3:       同属性 3+体         → 全員 +1 atk
+   */
+  function detectResonances(side) {
+    const pieces = piecesOf(side);
+    const results = [];
+    const setKey = (ps) => ps.map(p => p.uid).sort().join(',');
+    const seen = new Set();
+
+    // ----- 直線3連 (横/縦) -----
+    for (const p of pieces) {
+      // 横: (p.x, p.y), (p.x+1, p.y), (p.x+2, p.y)
+      const h1 = cell(p.x + 1, p.y);
+      const h2 = cell(p.x + 2, p.y);
+      if (h1 && h2 && h1.owner === side && h2.owner === side) {
+        const trio = [p, h1, h2];
+        const key = setKey(trio);
+        if (!seen.has(key)) {
+          seen.add(key);
+          results.push({ type: 'line3', name: '直線3連', pieces: trio });
+        }
+      }
+      // 縦: (p.x, p.y), (p.x, p.y+1), (p.x, p.y+2)
+      const v1 = cell(p.x, p.y + 1);
+      const v2 = cell(p.x, p.y + 2);
+      if (v1 && v2 && v1.owner === side && v2.owner === side) {
+        const trio = [p, v1, v2];
+        const key = setKey(trio);
+        if (!seen.has(key)) {
+          seen.add(key);
+          results.push({ type: 'line3', name: '直線3連', pieces: trio });
+        }
+      }
+    }
+
+    // ----- 斜め3連 -----
+    for (const p of pieces) {
+      // 右下 斜め
+      const d1 = cell(p.x + 1, p.y + 1);
+      const d2 = cell(p.x + 2, p.y + 2);
+      if (d1 && d2 && d1.owner === side && d2.owner === side) {
+        const trio = [p, d1, d2];
+        const key = 'diag_' + setKey(trio);
+        if (!seen.has(key)) {
+          seen.add(key);
+          results.push({ type: 'diag3', name: '斜め3連', pieces: trio });
+        }
+      }
+      // 左下 斜め
+      const d3 = cell(p.x - 1, p.y + 1);
+      const d4 = cell(p.x - 2, p.y + 2);
+      if (d3 && d4 && d3.owner === side && d4.owner === side) {
+        const trio = [p, d3, d4];
+        const key = 'diag_' + setKey(trio);
+        if (!seen.has(key)) {
+          seen.add(key);
+          results.push({ type: 'diag3', name: '斜め3連', pieces: trio });
+        }
+      }
+    }
+
+    // ----- L字3連 (4 回転) -----
+    // L字 = 角(pivot) + 2方向 直角に 各1マス先 = 計3駒
+    // pivot を中心に [横方向, 縦方向] の 2マスを 検査
+    const Lpatterns = [
+      [[1, 0], [0, 1]],     // L: 右 + 下
+      [[-1, 0], [0, 1]],    // J: 左 + 下
+      [[1, 0], [0, -1]],    // Γ: 右 + 上
+      [[-1, 0], [0, -1]],   // ⌐: 左 + 上
+    ];
+    for (const p of pieces) {
+      for (const pat of Lpatterns) {
+        const matched = [p];
+        let ok = true;
+        for (const [dx, dy] of pat) {
+          const c = cell(p.x + dx, p.y + dy);
+          if (!c || c.owner !== side) { ok = false; break; }
+          matched.push(c);
+        }
+        if (ok && matched.length === 3) {
+          const key = 'L_' + setKey(matched);
+          if (!seen.has(key)) {
+            seen.add(key);
+            // 角 (= p, 最初の要素) を 強化対象に
+            results.push({ type: 'L_shape', name: 'L字共鳴', pieces: matched, corner: p });
+          }
+        }
+      }
+    }
+
+    // ----- 同系統 3体以上（場所不問）-----
+    const byFamily = {};
+    pieces.forEach(p => {
+      if (!p.family) return;
+      (byFamily[p.family] = byFamily[p.family] || []).push(p);
+    });
+    Object.entries(byFamily).forEach(([fam, list]) => {
+      if (list.length >= 3) {
+        results.push({ type: 'family3', name: '同系統 連携', pieces: list, family: fam });
+      }
+    });
+
+    // ----- 同属性 3体以上（場所不問）-----
+    const byEl = {};
+    pieces.forEach(p => {
+      if (!p.el || p.el === 'none') return;
+      (byEl[p.el] = byEl[p.el] || []).push(p);
+    });
+    Object.entries(byEl).forEach(([el, list]) => {
+      if (list.length >= 3) {
+        results.push({ type: 'el3', name: '同属性 連携', pieces: list, el });
+      }
+    });
+
+    return results;
+  }
+
+  function resonanceAtkBonus(piece) {
+    const resos = detectResonances(piece.owner);
+    let bonus = 0;
+    for (const r of resos) {
+      const inThis = r.pieces.some(p => p.uid === piece.uid);
+      if (!inThis) continue;
+      switch (r.type) {
+        case 'line3':   bonus += 2; break;
+        case 'diag3':   bonus += 1; break;
+        case 'L_shape': bonus += (r.corner && r.corner.uid === piece.uid) ? 3 : 0; break;
+        case 'family3': bonus += 2; break;
+        case 'el3':     bonus += 1; break;
+      }
+    }
+    return bonus;
+  }
+
+  function resonanceRngBonus(piece) {
+    const resos = detectResonances(piece.owner);
+    let bonus = 0;
+    for (const r of resos) {
+      const inThis = r.pieces.some(p => p.uid === piece.uid);
+      if (!inThis) continue;
+      if (r.type === 'diag3') bonus += 1;   // 斜め 連携で 射程 +1
+    }
+    return bonus;
   }
 
   function neighbors(x, y) {
@@ -602,6 +758,7 @@ const TacticsEngine = (() => {
     summon, move, attack, useActive, endTurn,
     canSummonAt, canMove, canAttack,
     effectiveAtk, effectiveMov, effectiveRng,
+    detectResonances, resonanceAtkBonus, resonanceRngBonus,
     findPiece, piecesOf, cell, inBoard, chebyshev, neighbors,
     checkWin,
     // 魔法 用 公開 API

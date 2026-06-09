@@ -74,6 +74,8 @@ const TacticsUI = (() => {
           ${renderBoard()}
         </div>
 
+        ${renderResonanceBanner()}
+
         <div class="tac-ally-info">
           <span>📦 残${G.monsterDeck.ally.length}</span>
           ${G.pendingReactions.ally.length > 0
@@ -98,14 +100,45 @@ const TacticsUI = (() => {
     `;
   }
 
+  function renderResonanceBanner() {
+    const allyR = TacticsEngine.detectResonances('ally');
+    const enemyR = TacticsEngine.detectResonances('enemy');
+    if (allyR.length === 0 && enemyR.length === 0) return '';
+    const tag = (r, side) => {
+      const icon = ({ line3: '━', diag3: '╲', L_shape: '⌐',
+                       family3: '🔗', el3: '🌟' })[r.type] || '✨';
+      return `<span class="tac-reso ${side}">${icon} ${r.name}</span>`;
+    };
+    return `
+      <div class="tac-resonance">
+        ${allyR.map(r => tag(r, 'ally')).join('')}
+        ${enemyR.map(r => tag(r, 'enemy')).join('')}
+      </div>
+    `;
+  }
+
+  function getResoCellsForOwner(side) {
+    // 共鳴に 参加している cell uid を Set で 返す
+    const set = new Set();
+    TacticsEngine.detectResonances(side).forEach(r => {
+      r.pieces.forEach(p => set.add(p.uid));
+    });
+    return set;
+  }
+
   function renderBoard() {
     const G = TacticsEngine.state();
+    const allyReso = getResoCellsForOwner('ally');
+    const enemyReso = getResoCellsForOwner('enemy');
     let html = '';
     for (let y = 0; y < TacticsEngine.BOARD_H; y++) {
       html += '<div class="tac-row">';
       for (let x = 0; x < TacticsEngine.BOARD_W; x++) {
         const piece = G.board[y][x];
         const cls = [];
+        // 共鳴 中の マスは グロー
+        if (piece && allyReso.has(piece.uid)) cls.push('reso-ally');
+        if (piece && enemyReso.has(piece.uid)) cls.push('reso-enemy');
         if (y <= 1) cls.push('enemy-zone');
         else if (y >= 4) cls.push('ally-zone');
         if (selected && selected.kind === 'piece') {
