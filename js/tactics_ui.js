@@ -23,10 +23,15 @@ const TacticsUI = (() => {
   function start(opts = {}) {
     onExit = opts.onExit || null;
     root = document.getElementById('screen');
+    // 保存済み ツインデッキを 優先 利用
+    const savedMon = State.data && State.data.tacticsMonsterDeck;
+    const savedMag = State.data && State.data.tacticsMagicDeck;
     TacticsEngine.start({
-      allyMonsterDeck:  opts.allyMonsterDeck  || TacticsData.starterMonsterDeck(),
+      allyMonsterDeck:  opts.allyMonsterDeck
+        || (Array.isArray(savedMon) && savedMon.length === 12 ? savedMon : TacticsData.starterMonsterDeck()),
       enemyMonsterDeck: opts.enemyMonsterDeck || TacticsData.starterMonsterDeck(),
-      allyMagicDeck:    opts.allyMagicDeck    || TacticsData.starterMagicDeck(),
+      allyMagicDeck:    opts.allyMagicDeck
+        || (Array.isArray(savedMag) && savedMag.length === 6 ? savedMag : TacticsData.starterMagicDeck()),
       enemyMagicDeck:   opts.enemyMagicDeck   || TacticsData.starterMagicDeck(),
     });
     selected = null;

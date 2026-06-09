@@ -21,6 +21,7 @@ const UI = (() => {
     if (name === 'home') renderHome();
     else if (name === 'snap') renderSnap();
     else if (name === 'tactics') renderTactics();
+    else if (name === 'tdeck') renderTacticsDeck();
     else if (name === 'deck') renderDeck();
     else if (name === 'dex') renderDex();
     else if (name === 'settings') renderSettings();
@@ -39,6 +40,15 @@ const UI = (() => {
       return;
     }
     TacticsUI.start({ onExit: () => show('home') });
+  }
+
+  function renderTacticsDeck() {
+    if (typeof TacticsDeck === 'undefined') {
+      root.innerHTML = `${header('タクティクス デッキ編成')}
+        <p class="hint">デッキビルダー モジュールが 読み込まれていません。</p>`;
+      return;
+    }
+    TacticsDeck.start({ onExit: () => show('home') });
   }
 
   function goScreen(name, back) { backTarget = back; show(name); }
@@ -97,6 +107,9 @@ const UI = (() => {
           style="background:linear-gradient(180deg,#a06bff,#3a1888);border-color:#ffd23d;">
           <span class="mi">♟</span>タクティクス (6×6 戦術)
           <small style="display:block;font-size:10px;opacity:.8;">NEW</small>
+        </button>
+        <button class="menu-btn" data-act="goTacticsDeck" style="margin-top:6px;">
+          <span class="mi">📋</span>タクティクス デッキ編成
         </button>
         <button class="menu-btn big start" data-act="startSnapCpu"
           style="margin-top:10px;background:linear-gradient(180deg,#ff7a30,#c43014);border-color:#ffd23d;">
@@ -309,6 +322,7 @@ const UI = (() => {
     // タイトル
     startSnap: () => { snapMode = 'cpu'; backTarget = 'home'; show('snap'); },
     startTactics: () => { backTarget = 'home'; show('tactics'); },
+    goTacticsDeck: () => { backTarget = 'home'; show('tdeck'); },
     tacHandTap: (d) => TacticsUI.handTap(+d.uid),
     tacMagicTap: (d) => TacticsUI.magicTap(+d.uid),
     tacCellTap: (d) => TacticsUI.cellTap(+d.x, +d.y),
@@ -316,6 +330,13 @@ const UI = (() => {
     tacCancelMagic: () => TacticsUI.cancelMagic(),
     tacRestart: () => TacticsUI.restart(),
     tacExit: () => { TacticsUI.exit(); show('home'); },
+    // タクティクス ツインデッキ
+    tdeckTab: (d) => TacticsDeck.setTab(d.tab),
+    tdeckFilter: (d) => TacticsDeck.setFilter(d.kind, d.value),
+    tdeckAdd: (d) => TacticsDeck.addCard(d.kind, d.id),
+    tdeckRemove: (d) => TacticsDeck.removeCard(d.id),
+    tdeckSave: () => TacticsDeck.save(),
+    tdeckExit: () => TacticsDeck.exit(),
     startSnapCpu: () => { snapMode = 'cpu'; onlineOpp = null; backTarget = 'home'; show('snap'); },
     startSnapOnline: () => { startOnlineMatch(); },
     goDeck: () => goScreen('deck', 'home'),

@@ -3,7 +3,7 @@
  *  Stale-While-Revalidate 戦略：素早く表示しつつ、裏で最新を取得して
  *  次回起動に反映。バージョン更新時は古いキャッシュを破棄。
  * =======================================================================*/
-const CACHE_VERSION = 'mfw-v15';
+const CACHE_VERSION = 'mfw-v16';
 const STATIC_ASSETS = [
   './',
   './index.html',
@@ -28,6 +28,7 @@ const STATIC_ASSETS = [
   './js/tactics_engine.js',
   './js/tactics_magic.js',
   './js/tactics_cpu.js',
+  './js/tactics_deck.js',
   './js/tactics_ui.js',
   './js/firebase-config.js',
   './js/ui.js',
